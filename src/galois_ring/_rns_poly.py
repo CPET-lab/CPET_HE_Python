@@ -5,7 +5,7 @@ class _RNS_Poly:
 
     def __init__(self, rns_base : list):
         self._rns_base = rns_base
-        self._rns_poly = { e: poly._Poly(e) for e in rns_base }
+        self._rns_poly = { e: poly._Poly(e, n) for e in rns_base }
 
     def __add__(self, other):
         if self.keys() != other.keys():
@@ -38,9 +38,9 @@ class _RNS_Poly:
         return ret
 
     def _set_poly(self, rns_poly : poly._Poly):
-        if rns_poly._coeff_modular not in self._rns_poly:
-            raise Exception(f"no RNS modular {rns_poly._coeff_modular}")
-        self._rns_poly[rns_poly._coeff_modular] = rns_poly
+        if rns_poly._coeff_modulus not in self._rns_poly:
+            raise Exception(f"no RNS modulus {rns_poly._coeff_modulus}")
+        self._rns_poly[rns_poly._coeff_modulus] = rns_poly
         return self
     
     def toString(self, print_zero = True) -> str:
@@ -50,7 +50,9 @@ class _RNS_Poly:
         return ret
 
 if __name__ == "__main__":
-    rp1 = _RNS_Poly([7, 11, 13])
-    p1 = poly._Poly(13, [2, 8, 12, 0, 7])
+    n = 8
+    q = 12289
+    rp1 = _RNS_Poly([7, 11, 12289])
+    p1 = poly._Poly(q, n, [2, 8, 12, 0, 7])
     rp1._set_poly(p1)
     print(rp1.toString())
