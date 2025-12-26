@@ -1,1 +1,1 @@
-# CPET Homomorphic Encryption Package for Python
+# CPET Galois Ring Package for Python
