@@ -4,7 +4,7 @@ from _util._prime import *
 
 # element of galois field Z_q[X]/f(X), negacyclic ring
 # q: prime, f(X) = X^N + 1
-class _Poly:
+class Poly:
 
     def __init__(self, coeff_modulus : int, poly_modulus : int, data=[], is_ntt_form=False):
         self._data = data
@@ -34,13 +34,13 @@ class _Poly:
         for idx in range(len(res)):
             res[idx] = mod._modulus(res[idx] + long[idx], self._coeff_modulus)
         res += long[len(res):]
-        return _Poly(self._coeff_modulus, self._poly_modulus, res, self._is_ntt_form)._compress()
+        return Poly(self._coeff_modulus, self._poly_modulus, res, self._is_ntt_form)._compress()
     
     def __neg__(self):
         res = self._data.copy()
         for idx in range(len(res)):
             res[idx] = mod._modulus(-1 * res[idx], self._coeff_modulus)
-        return _Poly(self._coeff_modulus, self._poly_modulus, res, self._is_ntt_form)._compress()
+        return Poly(self._coeff_modulus, self._poly_modulus, res, self._is_ntt_form)._compress()
     
     def __sub__(self, other):
         if self._coeff_modulus != other._coeff_modulus:
@@ -54,7 +54,7 @@ class _Poly:
             res[idx] = mod._modulus(res[idx] - other._data[idx], self._coeff_modulus)
         if len(res) < len(other._data):
             res += (-other)._data
-        return _Poly(self._coeff_modulus, self._poly_modulus, res, self._is_ntt_form)._compress()
+        return Poly(self._coeff_modulus, self._poly_modulus, res, self._is_ntt_form)._compress()
     
     def __mul__(self, other):
         if self._coeff_modulus != other._coeff_modulus:
@@ -65,7 +65,7 @@ class _Poly:
             raise Exception(f"polynomial form is not match")
         if self.is_ntt_form():
             res = [ mod._modulus(a * b) for a, b in zip(self._data, other._data) ]
-            return _Poly(self._coeff_modulus, self._poly_modulus, res, self._is_ntt_form)._compress()
+            return Poly(self._coeff_modulus, self._poly_modulus, res, self._is_ntt_form)._compress()
         else:
             res = [0 for _ in range(len(self._data) + len(other._data))]
             for i in range(len(self._data)):
@@ -74,7 +74,7 @@ class _Poly:
             if len(res) >= self._poly_modulus:
                 for deg in range(len(res) - 1, self._poly_modulus - 1, -1):
                     res[deg - self._poly_modulus] = mod._modulus(res[deg - self._poly_modulus] - res[deg], self._coeff_modulus)
-            return _Poly(self._coeff_modulus, self._poly_modulus, res, self._is_ntt_form)._compress()
+            return Poly(self._coeff_modulus, self._poly_modulus, res, self._is_ntt_form)._compress()
     
     def _compress(self):
         if self.is_ntt_form():
@@ -123,8 +123,8 @@ class _Poly:
 if __name__ == "__main__":
     n = 8
     q = 12289
-    p1 = _Poly(q, n, [1, 2, 3, 0, 4, 5, 6, 0, 0])
-    p2 = _Poly(q, n, [2, 4, 6, 1])
+    p1 = Poly(q, n, [1, 2, 3, 0, 4, 5, 6, 0, 0])
+    p2 = Poly(q, n, [2, 4, 6, 1])
     print("p1: " + p1.toString(True))
     print("p2: " + p2.toString())
     print("compress: " + p1._compress().toString(True))
