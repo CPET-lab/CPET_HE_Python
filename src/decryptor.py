@@ -19,7 +19,7 @@ class Decryptor:
     def _recover_rns(self, rns_poly : RNS_Poly) -> Poly:
         ret = Poly(self._param.plain_modulus, self._param.poly_modulus)\
             ._set_ntt_engine(self._param.ntt_engines[self._param.plain_modulus])
-        ret._is_ntt_form = rns_poly.is_ntt_form()
+        ret._is_ntt_form = False
         ret._data = [ 0 for _ in range(self._param.poly_modulus) ]
         for deg in range(self._param.poly_modulus):
             acc = 0
@@ -27,9 +27,9 @@ class Decryptor:
                 if deg >= len(rns_poly._rns_poly[coeff_modulus]._data):
                     break
                 residue = rns_poly._rns_poly[coeff_modulus]._data[deg]
-                # print(f"acc, residue, basis: {acc}, {residue}, {self._param._basis[coeff_modulus]}")
                 acc += residue * self._param._basis[coeff_modulus]
-            ret._data[deg] = _modulus._centered_modulus(ret._data[deg] + acc, self._param._total_modulus)
+            ret._data[deg] = _modulus._centered_modulus(_modulus._centered_modulus(\
+                acc, self._param._total_modulus), self._param.plain_modulus)
         return ret
 
     def decrypt(self, encrypted : Ciphertext) -> Poly:
@@ -37,10 +37,9 @@ class Decryptor:
         if not encrypted_copy.is_ntt_form():
             encrypted_copy.transform_to_ntt_form()
         enc_data = encrypted_copy._data # list of rns_poly
-        poly_sum = enc_data[0] # rns_poly
-        # print("poly_sum\n" + poly_sum.toString(10, False))
-        for i in range(1, len(enc_data)):
-            poly_sum.add_inplace(enc_data[i] * self._secret_keys[i - 1])
+        poly_sum = enc_data[-1] # rns_poly
+        for i in range(len(enc_data) - 1):
+            poly_sum.add_inplace(enc_data[i] * self._secret_keys[len(enc_data) - i - 2])
         poly_sum.transform_from_ntt_form()
-        # print("poly_sum\n" + poly_sum.toString(10, False))
+        print(f"poly_sum\n{poly_sum.toString(10, False)}")
         return self._recover_rns(poly_sum) # poly

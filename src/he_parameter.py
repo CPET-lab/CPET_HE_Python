@@ -22,6 +22,8 @@ class HE_Parameter:
             self.set_coeff_modulus(coeff_modulus_bits)
         if plain_modulus_bit != 0:
             self.set_plain_modulus(plain_modulus_bit)
+        self._secret_key_bound = -1
+        self._first_error_bound = -1
         self._debug = debug
         self._setup_complete = False
         
@@ -63,16 +65,20 @@ class HE_Parameter:
         self.plain_modulus = prime._generate_prime(plain_modulus_bit, self.poly_modulus)
         return self
     
+    def set_bound(self, secret_key_bound : int, first_error_bound : int):
+        self._secret_key_bound = secret_key_bound
+        self._first_error_bound = first_error_bound
+        return self
+    
     def generate_context(self):
         # generate ntt tables
-        if self.poly_modulus == 0 or self.coeff_modulus == None or self.plain_modulus == None:
+        if self.poly_modulus == 0 or self.coeff_modulus == None or self.plain_modulus == None\
+            or self._secret_key_bound == -1 or self._first_error_bound == -1:
             raise Exception("set parameters before generate context")
         self.ntt_engines = dict()
         for base in self.coeff_modulus:
             self.ntt_engines[base] = _NTT_Engine(self.poly_modulus, base)
         self.ntt_engines[self.plain_modulus] = _NTT_Engine(self.poly_modulus, self.plain_modulus)
-        self._secret_key_bound = 1
-        self._first_error_bound = 1
         self._setup_complete = True
         return self
     

@@ -8,7 +8,7 @@ class RNS_Poly:
     def __init__(self, rns_base : list[int], poly_modulus : int, is_ntt_form=False):
         self._rns_base = rns_base
         self._poly_modulus = poly_modulus
-        self._rns_poly = { e: Poly(e, poly_modulus) for e in rns_base }
+        self._rns_poly = { e: Poly(e, poly_modulus, [], is_ntt_form) for e in rns_base }
         self._is_ntt_form = is_ntt_form
 
     def __add__(self, other : Self):
@@ -58,7 +58,9 @@ class RNS_Poly:
     def _eval_rns(self, poly : Poly):
         self._is_ntt_form = poly.is_ntt_form()
         for rns_base in self._rns_base:
-            self._rns_poly[rns_base] = Poly(rns_base, poly._poly_modulus, [], poly.is_ntt_form())
+            temp_ntt_engine = self._rns_poly[rns_base]._ntt_engine
+            self._rns_poly[rns_base] = Poly(rns_base, poly._poly_modulus, [], poly.is_ntt_form())\
+                ._set_ntt_engine(temp_ntt_engine)
             for idx, coeff in enumerate(poly._data):
                 if idx >= len(self._rns_poly[rns_base]._data):
                     self._rns_poly[rns_base]._data.append(_modulus._centered_modulus(coeff, rns_base))
@@ -74,7 +76,7 @@ class RNS_Poly:
     
     def _set_ntt_engines(self, ntt_engine : dict[int, _NTT_Engine]):
         for base in self._rns_base:
-            if base not in dict.keys():
+            if base not in ntt_engine.keys():
                 raise Exception("Invalid ntt engine dictionary")
             self._rns_poly[base]._set_ntt_engine(ntt_engine[base])
         return self

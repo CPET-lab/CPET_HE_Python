@@ -48,12 +48,15 @@ class Ciphertext:
     
     def __mul__(self, other : Self):
         if self.is_ntt_form() != other.is_ntt_form():
-            raise Exception(f"ciphertext form is defferent")
+            raise Exception(f"ciphertext form is different")
         temp_data = []
-        for _ in range(self.size() + other.size):
+        for _ in range(self.size() + other.size() - 1):
             temp_poly = RNS_Poly(self._param.coeff_modulus, self._param.poly_modulus, self._is_ntt_form)
             temp_poly._set_ntt_engines(self._param.ntt_engines)
             temp_data.append(temp_poly)
+        for i in range(self.size()):
+            for j in range(other.size()):
+                temp_data[i + j].add_inplace(self._data[i] * other._data[j])
         temp_error_bound = self._error_bound * other._error_bound\
              + (self._error_bound + other._error_bound) * self._param.plain_modulus
         return Ciphertext(self._param, temp_data, temp_error_bound, self._is_ntt_form)
@@ -85,6 +88,9 @@ class Ciphertext:
             temp_poly = RNS_Poly(self._param.coeff_modulus, self._param.poly_modulus, self._is_ntt_form)
             temp_poly._set_ntt_engines(self._param.ntt_engines)
             temp_data.append(temp_poly)
+        for i in range(self.size()):
+            for j in range(other.size()):
+                temp_data[i + j].add_inplace(self._data[i] * other._data[j])
         self._data = temp_data
         self._error_bound = self._error_bound * other._error_bound\
              + (self._error_bound + other._error_bound) * self._param.plain_modulus
@@ -116,13 +122,13 @@ class Ciphertext:
     def add_plain_inplace(self, other : Poly) -> Self:
         if self.is_ntt_form() != other.is_ntt_form():
             raise Exception("form is different")
-        self._data[0].add_poly_inplace(other)
+        self._data[-1].add_poly_inplace(other)
         return self
     
     def sub_plain_inplace(self, other : Poly) -> Self:
         if self.is_ntt_form() != other.is_ntt_form():
             raise Exception("form is different")
-        self._data[0].sub_poly_inplace(other)
+        self._data[-1].sub_poly_inplace(other)
         return self
     
     def mul_plain_inplace(self, other : Poly) -> Self:

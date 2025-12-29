@@ -113,6 +113,8 @@ class Poly:
         if len(self._data) < self._poly_modulus:
             self._data += [ 0 for _ in range(self._poly_modulus - len(self._data))]
         self._data = self._ntt_engine._transform_to_ntt_form(self._data)
+        for i in range(len(self._data)):
+            self._data[i] = _modulus._centered_modulus(self._data[i], self._coeff_modulus)
         self._is_ntt_form = True
         self._compress()
         return self
@@ -125,6 +127,8 @@ class Poly:
         if len(self._data) < self._poly_modulus:
             self._data += [ 0 for _ in range(self._poly_modulus - len(self._data))]
         self._data = self._ntt_engine._transform_from_ntt_form(self._data)
+        for i in range(len(self._data)):
+            self._data[i] = _modulus._centered_modulus(self._data[i], self._coeff_modulus)
         self._is_ntt_form = False
         self._compress()
         return self
@@ -194,6 +198,11 @@ class Poly:
                 for deg in range(len(res) - 1, self._poly_modulus - 1, -1):
                     res[deg - self._poly_modulus] = _modulus._centered_modulus(res[deg - self._poly_modulus] - res[deg], self._coeff_modulus)
             self._data = res
+        return self
+    
+    def centered_mod(self):
+        for i in range(len(self._data)):
+            self._data[i] = _modulus._centered_modulus(self._data[i], self._coeff_modulus)
         return self
         
     def toString(self, length=-1, print_zero=False) -> str:
