@@ -13,11 +13,12 @@ class Poly:
         self._poly_modulus = poly_modulus
         self._is_ntt_form = is_ntt_form
         self._ntt_engine = None
+        self._norm = 0
         if is_ntt_form:
             if len(data) < poly_modulus:
                 self._data += [ 0 for _ in range(poly_modulus - len(data))]
         else:
-            self._compress
+            self._compress()
 
     def __add__(self, other : Self):
         if self._coeff_modulus != other._coeff_modulus:
@@ -33,7 +34,7 @@ class Poly:
             res = other._data.copy()
             long = self._data
         for idx in range(len(res)):
-            res[idx] = _modulus._modulus(res[idx] + long[idx], self._coeff_modulus)
+            res[idx] = _modulus._centered_modulus(res[idx] + long[idx], self._coeff_modulus)
         res += long[len(res):]
         return Poly(self._coeff_modulus, self._poly_modulus, res, self._is_ntt_form)\
             ._set_ntt_engine(self._ntt_engine)\
@@ -42,7 +43,7 @@ class Poly:
     def __neg__(self):
         res = self._data.copy()
         for idx in range(len(res)):
-            res[idx] = _modulus._modulus(-1 * res[idx], self._coeff_modulus)
+            res[idx] = _modulus._centered_modulus(-1 * res[idx], self._coeff_modulus)
         return Poly(self._coeff_modulus, self._poly_modulus, res, self._is_ntt_form)\
             ._set_ntt_engine(self._ntt_engine)\
             ._compress()
@@ -56,7 +57,7 @@ class Poly:
             raise Exception(f"polynomial form is not match")
         res = self._data.copy()
         for idx in range(min(len(res), len(other._data))):
-            res[idx] = _modulus._modulus(res[idx] - other._data[idx], self._coeff_modulus)
+            res[idx] = _modulus._centered_modulus(res[idx] - other._data[idx], self._coeff_modulus)
         if len(res) < len(other._data):
             res += (-other)._data
         return Poly(self._coeff_modulus, self._poly_modulus, res, self._is_ntt_form)\
@@ -71,7 +72,7 @@ class Poly:
         if self.is_ntt_form() != other.is_ntt_form():
             raise Exception(f"polynomial form is not match")
         if self.is_ntt_form():
-            res = [ _modulus._modulus(a * b) for a, b in zip(self._data, other._data) ]
+            res = [ _modulus._centered_modulus(a * b, self._coeff_modulus) for a, b in zip(self._data, other._data) ]
             return Poly(self._coeff_modulus, self._poly_modulus, res, self._is_ntt_form)\
                 ._set_ntt_engine(self._ntt_engine)\
                 ._compress()
@@ -79,13 +80,13 @@ class Poly:
             res = [0 for _ in range(len(self._data) + len(other._data))]
             for i in range(len(self._data)):
                 for j in range(len(other._data)):
-                    res[i + j] = _modulus._modulus(self._data[i] * other._data[j], self._coeff_modulus)
+                    res[i + j] = _modulus._centered_modulus(self._data[i] * other._data[j], self._coeff_modulus)
             if len(res) >= self._poly_modulus:
                 for deg in range(len(res) - 1, self._poly_modulus - 1, -1):
-                    res[deg - self._poly_modulus] = _modulus._modulus(res[deg - self._poly_modulus] - res[deg], self._coeff_modulus)
+                    res[deg - self._poly_modulus] = _modulus._centered_modulus(res[deg - self._poly_modulus] - res[deg], self._coeff_modulus)
             return Poly(self._coeff_modulus, self._poly_modulus, res, self._is_ntt_form)\
                 ._set_ntt_engine(self._ntt_engine)\
-                ._compress()
+                ._compress()\
     
     def _compress(self):
         if self.is_ntt_form():
@@ -101,6 +102,9 @@ class Poly:
     def is_ntt_form(self) -> bool:
         return self._is_ntt_form
     
+    def norm(self):
+        return self._norm
+    
     def transform_to_ntt_form(self):
         if self._ntt_engine == None:
             raise Exception(f"set ntt engine before ntt")
@@ -110,7 +114,7 @@ class Poly:
             self._data += [ 0 for _ in range(self._poly_modulus - len(self._data))]
         self._data = self._ntt_engine._transform_to_ntt_form(self._data)
         self._is_ntt_form = True
-        self._compress
+        self._compress()
         return self
     
     def transform_from_ntt_form(self):
@@ -122,14 +126,16 @@ class Poly:
             self._data += [ 0 for _ in range(self._poly_modulus - len(self._data))]
         self._data = self._ntt_engine._transform_from_ntt_form(self._data)
         self._is_ntt_form = False
-        self._compress
+        self._compress()
         return self
     
     def copy(self) -> Self:
         temp_data = self._data.copy()
-        return Poly(self._coeff_modulus, self._poly_modulus, temp_data, self._is_ntt_form)\
+        ret = Poly(self._coeff_modulus, self._poly_modulus, temp_data, self._is_ntt_form)\
             ._set_ntt_engine(self._ntt_engine)\
             ._compress()
+        ret._norm = self._norm
+        return ret
     
     def add_inplace(self, other : Self):
         if self._coeff_modulus != other._coeff_modulus:
@@ -140,11 +146,11 @@ class Poly:
             raise Exception(f"polynomial form is not match")
         if len(self._data) < len(other._data):
             for i in range(len(self._data)):
-                self._data[i] = _modulus._modulus(self._data[i] + other._data[i])
+                self._data[i] = _modulus._centered_modulus(self._data[i] + other._data[i], self._coeff_modulus)
             self._data += other._data[len(self._data):]
         else:
             for i in range(len(other._data)):
-                self._data[i] = _modulus._modulus(self._data[i] + other._data[i])
+                self._data[i] = _modulus._centered_modulus(self._data[i] + other._data[i], self._coeff_modulus)
         return self
     
     def sub_inplace(self, other : Self):
@@ -156,12 +162,17 @@ class Poly:
             raise Exception(f"polynomial form is not match")
         if len(self._data) < len(other._data):
             for i in range(len(self._data)):
-                self._data[i] = _modulus._modulus(self._data[i] - other._data[i])
+                self._data[i] = _modulus._centered_modulus(self._data[i] - other._data[i], self._coeff_modulus)
             for i in range(len(self._data), len(other._data)):
-                self._data.append(_modulus._modulus(-1 * other._data[i]))
+                self._data.append(_modulus._centered_modulus(-1 * other._data[i], self._coeff_modulus))
         else:
             for i in range(len(other._data)):
-                self._data[i] = _modulus._modulus(self._data[i] - other._data[i])
+                self._data[i] = _modulus._centered_modulus(self._data[i] - other._data[i], self._coeff_modulus)
+        return self
+    
+    def neg_inplace(self):
+        for idx, d in enumerate(self._data):
+            self._data[idx] = _modulus._centered_modulus(-1 * (d + self._coeff_modulus), self._coeff_modulus)
         return self
     
     def mul_inplace(self, other : Self):
@@ -170,21 +181,21 @@ class Poly:
         if self._poly_modulus != other._poly_modulus:
             raise Exception(f"except Z_{self._poly_modulus} but Z_{other._poly_modulus}")
         if self.is_ntt_form() != other.is_ntt_form():
-            raise Exception(f"polynomial form is not match")
+            raise Exception(f"polynomial form is not match {self.is_ntt_form()} {other.is_ntt_form()}")
         if self.is_ntt_form():
             for i in range(self._poly_modulus):
-                self._data[i] = _modulus._modulus(self._data[i] * other._data[i])
+                self._data[i] = _modulus._centered_modulus(self._data[i] * other._data[i], self._coeff_modulus)
         else:
             res = [0 for _ in range(len(self._data) + len(other._data))]
             for i in range(len(self._data)):
                 for j in range(len(other._data)):
-                    res[i + j] = _modulus._modulus(self._data[i] * other._data[j], self._coeff_modulus)
+                    res[i + j] = _modulus._centered_modulus(self._data[i] * other._data[j], self._coeff_modulus)
             if len(res) >= self._poly_modulus:
                 for deg in range(len(res) - 1, self._poly_modulus - 1, -1):
-                    res[deg - self._poly_modulus] = _modulus._modulus(res[deg - self._poly_modulus] - res[deg], self._coeff_modulus)
+                    res[deg - self._poly_modulus] = _modulus._centered_modulus(res[deg - self._poly_modulus] - res[deg], self._coeff_modulus)
             self._data = res
-            return self
-    
+        return self
+        
     def toString(self, length=-1, print_zero=False) -> str:
         ret = ""
         if self.is_ntt_form():
@@ -202,7 +213,7 @@ class Poly:
                     continue
                 ret += f"{coef}x^{deg} + "
             if ret == "":
-                return "0"
+                return "empty"
             else:
                 return ret[:-3]
 

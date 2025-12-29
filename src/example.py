@@ -2,6 +2,8 @@ from he_parameter import HE_Parameter
 from encoder import Encoder
 from evaluator import Evaluator
 from key_generator import Key_Generator
+from encryptor import Encryptor
+from decryptor import Decryptor
 
 if __name__ == "__main__":
     parms = HE_Parameter("bv").set_poly_modulus(13).set_coeff_modulus([30, 30, 40]).set_plain_modulus(18)
@@ -27,6 +29,30 @@ if __name__ == "__main__":
     print("plain 2 : " + plain2.toString(10, False))
     print("plain 4 : " + plain4.toString(10, False))
 
+
     keygen = Key_Generator(parms)
-    plain5 = keygen.generate_zero_poly(2)
-    print("plain 5 : " + plain5.toString(10, True))
+    rns_plain = keygen.generate_bound_rns_poly(2)
+    print("\nrns_plain\n" + rns_plain.toString(10, False))
+
+    print("HE")
+    secret_key = keygen.generate_secret_key()
+    print("secret key\n" + secret_key.toString(10, False))
+    secret_key.transform_to_ntt_form()
+    public_key = keygen.generate_public_key(secret_key)
+    print("public key\n" + public_key.toString(10, False))
+
+    encryptor = Encryptor(parms, public_key)
+    decryptor = Decryptor(parms, secret_key)
+
+    plain5 = encoder.coeff_encode([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+    print("\nplain5: " + plain5.toString(10, False))
+    plain5.transform_to_ntt_form()
+    cipher1 = encryptor.encrypt(plain5)
+    print("cipher1\n" + cipher1.toString(10, False))
+    print((cipher1._data[1] * secret_key).toString(10, False))
+    print((cipher1._data[0] + cipher1._data[1] * secret_key).toString(10, False))
+    decrypt_plain5 = decryptor.decrypt(cipher1)
+    print("decrypt plain: " + decrypt_plain5.toString(10, False), end="\n\n")
+
+    decrypt_public_key = decryptor.decrypt(public_key)
+    print("decrypt public key: " + decrypt_public_key.toString(10, False), end="\n\n")
