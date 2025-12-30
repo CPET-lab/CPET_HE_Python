@@ -1,7 +1,7 @@
 from typing import Self
-from galois_ring.poly import Poly
-from galois_ring._util import _modulus
-from galois_ring._util._ntt import _NTT_Engine
+from he.galois_ring.poly import Poly
+from he.galois_ring._util import _modulus
+from he.galois_ring._util._ntt import _NTT_Engine
 
 class RNS_Poly:
 

@@ -1,7 +1,7 @@
 from typing import Self
-from galois_ring.poly import Poly
-from galois_ring.rns_poly import RNS_Poly
-from he_parameter import HE_Parameter
+from he.galois_ring.poly import Poly
+from he.galois_ring.rns_poly import RNS_Poly
+from he.he_parameter import HE_Parameter
 
 class Ciphertext:
     # data: list of RNS_Poly

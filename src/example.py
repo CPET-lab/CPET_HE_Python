@@ -1,10 +1,10 @@
-from galois_ring.poly import Poly
-from he_parameter import HE_Parameter
-from encoder import Encoder
-from evaluator import Evaluator
-from key_generator import Key_Generator
-from encryptor import Encryptor
-from decryptor import Decryptor
+from he.galois_ring.poly import Poly
+from he.he_parameter import HE_Parameter
+from he.encoder import Encoder
+from he.evaluator import Evaluator
+from he.key_generator import Key_Generator
+from he.encryptor import Encryptor
+from he.decryptor import Decryptor
 
 if __name__ == "__main__":
     parms = HE_Parameter("bv").set_poly_modulus(13).set_coeff_modulus([30, 30, 40]).set_plain_modulus(18).set_bound(1, 2)

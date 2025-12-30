@@ -1,5 +1,5 @@
-from galois_ring.poly import Poly
-from he_parameter import HE_Parameter
+from he.galois_ring.poly import Poly
+from he.he_parameter import HE_Parameter
 
 class Encoder:
     def __init__(self, parameter : HE_Parameter):

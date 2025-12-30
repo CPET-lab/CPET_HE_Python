@@ -1,9 +1,9 @@
-from galois_ring._util import _random
-from galois_ring._util import _modulus
-from galois_ring.poly import Poly
-from galois_ring.rns_poly import RNS_Poly
-from ciphertext import Ciphertext
-from he_parameter import HE_Parameter
+from he.galois_ring._util import _random
+from he.galois_ring._util import _modulus
+from he.galois_ring.poly import Poly
+from he.galois_ring.rns_poly import RNS_Poly
+from he.ciphertext import Ciphertext
+from he.he_parameter import HE_Parameter
 
 class Key_Generator:
     def __init__(self, parameter : HE_Parameter):

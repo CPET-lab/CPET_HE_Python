@@ -1,7 +1,7 @@
-from galois_ring.poly import Poly
+from he.galois_ring.poly import Poly
 from galois_ring.rns_poly import RNS_Poly
-from he_parameter import HE_Parameter
-from ciphertext import Ciphertext
+from he.he_parameter import HE_Parameter
+from he.ciphertext import Ciphertext
 
 class Encryptor:
     def __init__(self, parameter : HE_Parameter, public_key : Ciphertext):

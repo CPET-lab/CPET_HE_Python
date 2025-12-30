@@ -1,7 +1,7 @@
 from typing import Self
-from galois_ring._util import _modulus
-from galois_ring._util._ntt import _NTT_Engine
-from galois_ring._util._prime import *
+from he.galois_ring._util import _modulus
+from he.galois_ring._util._ntt import _NTT_Engine
+from he.galois_ring._util._prime import *
 
 # element of galois field Z_q[X]/f(X), negacyclic ring
 # q: prime, f(X) = X^N + 1
