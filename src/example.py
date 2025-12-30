@@ -12,65 +12,42 @@ if __name__ == "__main__":
     print(parms.toString())
 
     encoder = Encoder(parms)
-    plain1 = encoder.slot_encode([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
-    plain2 = encoder.slot_encode([11, 12, 13, 14, 15, 16, 17, 18, 19, 20])
-    plain3 = plain1.copy()
-    print("plain 1 : " + plain1.toString(10, False))
-    print("plain 2 : " + plain2.toString(10, False))
-    print("plain 3 : " + plain3.toString(10, False))
-
-    plain1.transform_from_ntt_form()
-    plain2.transform_from_ntt_form()
-    plain4 = plain1 + plain2
-    plain1.transform_to_ntt_form()
-    plain2.transform_to_ntt_form()
-    plain4.transform_to_ntt_form()
-    
-    print("plain 1 : " + plain1.toString(10, False))
-    print("plain 2 : " + plain2.toString(10, False))
-    print("plain 4 : " + plain4.toString(10, False))
-
-
     keygen = Key_Generator(parms)
-    rns_plain = keygen.generate_bound_rns_poly(2)
-    print("\nrns_plain\n" + rns_plain.toString(10, False))
-
-    print("HE")
     secret_key = keygen.generate_secret_key()
-    temp_plain = encoder.coeff_encode([1, 0, 0])
+    # secret_key2 = keygen.generate_secret_key()
+
+    secret_key.transform_from_ntt_form()
+    temp_plain = encoder.coeff_encode([0, 0, 0])
     secret_key._data = secret_key._eval_rns(temp_plain)
-    print("secret key\n" + secret_key.toString(10, False))
+    print("secret key\n" + secret_key.toString(parms.poly_modulus, False))
     secret_key.transform_to_ntt_form()
+
     public_key = keygen.generate_public_key(secret_key)
-    # public_key._data[0] = secret_key.copy().neg_inplace()
-    public_key._data[1] = public_key._data[0].copy().neg_inplace() * secret_key
-    print("public key\n" + public_key.toString(10, False))
+
+    public_key._data[0] = secret_key.copy()
+    public_key._data[1] = public_key._data[0].copy().mul_inplace(secret_key).neg_inplace()
+
+    print("pk[0]\n" + public_key._data[0].transform_from_ntt_form().toString(parms.poly_modulus, False))
+    print("pk[1]\n" + public_key._data[1].transform_from_ntt_form().toString(parms.poly_modulus, False))
+    public_key._data[0].transform_to_ntt_form()
+    public_key._data[1].transform_to_ntt_form()
 
     encryptor = Encryptor(parms, public_key)
     decryptor = Decryptor(parms, secret_key)
 
-    plain5 = encoder.slot_encode([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
-    print("\nplain5: " + plain5.toString(10, False))
-    # plain5.transform_to_ntt_form()
-    cipher1 = encryptor.encrypt(plain5)
-    print("cipher1\n" + cipher1.toString(10, False))
-    print((cipher1._data[0] * secret_key).toString(10, False))
-    print((cipher1._data[1] + cipher1._data[0] * secret_key).toString(10, False))
-    decrypt_plain5 = decryptor.decrypt(cipher1)
-    decrypt_plain5.transform_to_ntt_form()
-    print("decrypt plain: " + decrypt_plain5.toString(10, False), end="\n\n")
-
-    decrypt_public_key = decryptor.decrypt(public_key)
-    print("decrypt public key: " + decrypt_public_key.toString(10, False), end="\n\n")
-
-    c1 = encryptor.encrypt(plain1)
-    # plain2 = encoder.slot_encode([11, 12, 13, 14, 15, 16, 17, 18, 19, 20])
+    plain1 = encoder.coeff_encode([1, 2])
     plain2 = encoder.coeff_encode([1, 1, 0, 0, 0, 0, 0, 0, 0, 0])
-    plain2.transform_to_ntt_form()
+    # plain1.transform_from_ntt_form()
+    # plain2.transform_from_ntt_form()
+    c1 = encryptor.encrypt(plain1)
     c2 = encryptor.encrypt(plain2)
     pk_copy = public_key.copy()
     pk_copy._data[0].add_poly_inplace(plain2)
     c3 = c1 * c2
-    d3 = decryptor.decrypt(c2)
-    print("c3\n" + c3.toString(10, False))
+
+    print("c1\n" + c1.transform_from_ntt_form().toString(parms.poly_modulus, False))
+    print("c2\n" + c2.transform_from_ntt_form().toString(parms.poly_modulus, False))
+    print("c3\n" + c3.transform_from_ntt_form().toString(10, False))
+    c3.transform_to_ntt_form()
+    d3 = decryptor.decrypt(c3)
     print("d3\n" + d3.toString(10, False))

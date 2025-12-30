@@ -39,25 +39,30 @@ class Key_Generator:
         return ret
     
     def generate_secret_key(self) -> RNS_Poly:
-        return self.generate_bound_rns_poly(self.param._secret_key_bound)
+        return self.generate_bound_rns_poly(self.param._secret_key_bound).transform_to_ntt_form()
     
     def generate_public_key(self, secret_key : RNS_Poly) -> Ciphertext:
         if not secret_key.is_ntt_form():
             raise Exception("Secret Key must be NTT form")
         c0 = self.generate_bound_rns_poly(0)
+        # c0 = secret_key.copy()
         c0._is_ntt_form = True
         for base in self.param.coeff_modulus:
-            temp_poly = self.generate_bound_poly(base, base - 1)
+            temp_poly = self.generate_bound_poly(base, 0)
             temp_poly._is_ntt_form = True
             c0._set_poly(temp_poly.copy())
+        # print("c0\n" + c0.transform_from_ntt_form().toString(10, False))
+        # c0.transform_to_ntt_form()
         c1 = c0.copy()
         c1.mul_inplace(secret_key)
-        loc_error = [ self.param.plain_modulus * \
-            _random._random_centered_mod_int(self.param._first_error_bound)\
-            for _ in range(self.param.poly_modulus) ]
-        loc_error_plain = Poly(self.param.plain_modulus, self.param.poly_modulus, loc_error)
-        loc_error_plain._set_ntt_engine(self.param.ntt_engines[self.param.plain_modulus])
-        loc_error_plain.transform_to_ntt_form()
-        c1.add_poly_inplace(loc_error_plain)
+        # print("c1\n" + c1.transform_from_ntt_form().toString(10, False))
+        # c1.transform_to_ntt_form()
+        
+        # loc_error = [ self.param.plain_modulus * \
+        #     _random._random_centered_mod_int(self.param._first_error_bound)\
+        #     for _ in range(self.param.poly_modulus) ]
+        # loc_error_plain = Poly(self.param.plain_modulus, self.param.poly_modulus, loc_error)
+        # loc_error_plain._set_ntt_engine(self.param.ntt_engines[self.param.plain_modulus])
+        # c1.add_poly_inplace(loc_error_plain)
         ret = Ciphertext(self.param, [c0.neg_inplace(), c1], self.param._first_error_bound, True)
         return ret

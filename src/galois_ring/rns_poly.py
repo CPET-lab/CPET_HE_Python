@@ -56,7 +56,9 @@ class RNS_Poly:
         return self
     
     def _eval_rns(self, poly : Poly):
-        self._is_ntt_form = poly.is_ntt_form()
+        if poly.is_ntt_form():
+            raise Exception("polynomial must be basic form")
+        self._is_ntt_form = False
         for rns_base in self._rns_base:
             temp_ntt_engine = self._rns_poly[rns_base]._ntt_engine
             self._rns_poly[rns_base] = Poly(rns_base, poly._poly_modulus, [], poly.is_ntt_form())\
@@ -114,10 +116,10 @@ class RNS_Poly:
         return self
     
     def add_poly_inplace(self, other : Poly):
-        if self.is_ntt_form() != other.is_ntt_form():
-            raise Exception("form is different")
-        other_rns = RNS_Poly(self._rns_base, self._poly_modulus, self.is_ntt_form())
+        other_rns = self.copy()
         other_rns._eval_rns(other)
+        if self.is_ntt_form():
+            other_rns.transform_to_ntt_form()
         self.add_inplace(other_rns)
     
     def sub_inplace(self, other : Self):

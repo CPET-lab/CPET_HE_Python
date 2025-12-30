@@ -97,22 +97,22 @@ class Ciphertext:
         return self
     
     def add_plain(self, other : Poly) -> Self:
-        if self.is_ntt_form() != other.is_ntt_form():
-            raise Exception("form is different")
+        if other.is_ntt_form():
+            raise Exception("plain must be coeff form")
         ret = self.copy()
         ret._data[0].add_poly_inplace(other)
         return ret
     
     def sub_plain(self, other : Poly) -> Self:
-        if self.is_ntt_form() != other.is_ntt_form():
-            raise Exception("form is different")
+        if other.is_ntt_form():
+            raise Exception("plain must be coeff form")
         ret = self.copy()
         ret._data[0].sub_poly_inplace(other)
         return ret
     
     def mul_plain(self, other : Poly) -> Self:
-        if self.is_ntt_form() != other.is_ntt_form():
-            raise Exception("form is different")
+        if other.is_ntt_form():
+            raise Exception("plain must be coeff form")
         ret = self.copy()
         for rns_poly in ret._data:
             rns_poly.mul_poly_inplace(other)
@@ -120,20 +120,20 @@ class Ciphertext:
         return ret
     
     def add_plain_inplace(self, other : Poly) -> Self:
-        if self.is_ntt_form() != other.is_ntt_form():
-            raise Exception("form is different")
+        if other.is_ntt_form():
+            raise Exception("plain must be coeff form")
         self._data[-1].add_poly_inplace(other)
         return self
     
     def sub_plain_inplace(self, other : Poly) -> Self:
-        if self.is_ntt_form() != other.is_ntt_form():
-            raise Exception("form is different")
+        if other.is_ntt_form():
+            raise Exception("plain must be coeff form")
         self._data[-1].sub_poly_inplace(other)
         return self
     
     def mul_plain_inplace(self, other : Poly) -> Self:
-        if self.is_ntt_form() != other.is_ntt_form():
-            raise Exception("form is different")
+        if other.is_ntt_form():
+            raise Exception("plain must be coeff form")
         for rns_poly in self._data:
             rns_poly.mul_poly_inplace(other)
         self._error_bound = self._error_bound * other.norm()

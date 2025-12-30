@@ -11,10 +11,12 @@ class Decryptor:
         self._param = parameter
         secret_key_copy = secret_key.copy()
         if not secret_key_copy.is_ntt_form():
-            secret_key_copy.transform_to_ntt_form()
+            raise Exception("Secret key must be NTT form")
         self._secret_keys = [secret_key_copy]
         for idx in range(1, 40):
             self._secret_keys.append(self._secret_keys[idx - 1] * secret_key_copy)
+            # print("secret key\n" + self._secret_keys[-1].transform_from_ntt_form().toString(self._param.poly_modulus, False))
+            # self._secret_keys[-1].transform_to_ntt_form()
 
     def _recover_rns(self, rns_poly : RNS_Poly) -> Poly:
         ret = Poly(self._param.plain_modulus, self._param.poly_modulus)\
@@ -40,6 +42,7 @@ class Decryptor:
         poly_sum = enc_data[-1] # rns_poly
         for i in range(len(enc_data) - 1):
             poly_sum.add_inplace(enc_data[i] * self._secret_keys[len(enc_data) - i - 2])
+            print("i: " + str(i) + "\n" + (enc_data[i] * self._secret_keys[len(enc_data) - i - 2]).toString(20, False))
         poly_sum.transform_from_ntt_form()
         print(f"poly_sum\n{poly_sum.toString(10, False)}")
         return self._recover_rns(poly_sum) # poly
