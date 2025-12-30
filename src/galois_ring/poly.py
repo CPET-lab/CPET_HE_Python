@@ -113,8 +113,6 @@ class Poly:
         if len(self._data) < self._poly_modulus:
             self._data += [ 0 for _ in range(self._poly_modulus - len(self._data))]
         self._data = self._ntt_engine._transform_to_ntt_form(self._data)
-        for i in range(len(self._data)):
-            self._data[i] = _modulus._centered_modulus(self._data[i], self._coeff_modulus)
         self._is_ntt_form = True
         self._compress()
         return self
@@ -126,9 +124,8 @@ class Poly:
             raise Exception(f"polynomial is already basic form")
         if len(self._data) < self._poly_modulus:
             self._data += [ 0 for _ in range(self._poly_modulus - len(self._data))]
+            raise Exception("polynomial is broken")
         self._data = self._ntt_engine._transform_from_ntt_form(self._data)
-        for i in range(len(self._data)):
-            self._data[i] = _modulus._centered_modulus(self._data[i], self._coeff_modulus)
         self._is_ntt_form = False
         self._compress()
         return self

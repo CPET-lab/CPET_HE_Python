@@ -23,16 +23,14 @@ class Key_Generator:
         if bound < 0:
             raise Exception("bound must be positive integer")
         return Poly(modulus, self.param.poly_modulus, self._generate_random_poly(bound))\
-            ._set_ntt_engine(self.param.ntt_engines[self.param.plain_modulus])
+            ._set_ntt_engine(self.param.ntt_engines[modulus])
 
     # for public key, secret key, error
     def generate_bound_rns_poly(self, bound : int) -> RNS_Poly:
         if bound < 0:
             raise Exception("bound must be positive integer")
         ret = RNS_Poly(self.param.coeff_modulus, self.param.poly_modulus)
-        if bound == 0:
-            return ret
-        poly = self.generate_bound_poly(bound, bound)
+        poly = self.generate_bound_poly(self.param.plain_modulus, bound)
         ret._eval_rns(poly)
         for coeff, poly in ret._rns_poly.items():
             poly._set_ntt_engine(self.param.ntt_engines[coeff])
@@ -46,7 +44,7 @@ class Key_Generator:
             raise Exception("Secret Key must be NTT form")
         c0 = self.generate_bound_rns_poly(0)
         # c0 = secret_key.copy()
-        c0._is_ntt_form = True
+        c0.transform_to_ntt_form()
         for base in self.param.coeff_modulus:
             temp_poly = self.generate_bound_poly(base, 0)
             temp_poly._is_ntt_form = True
@@ -57,12 +55,12 @@ class Key_Generator:
         c1.mul_inplace(secret_key)
         # print("c1\n" + c1.transform_from_ntt_form().toString(10, False))
         # c1.transform_to_ntt_form()
-        
+
         # loc_error = [ self.param.plain_modulus * \
         #     _random._random_centered_mod_int(self.param._first_error_bound)\
         #     for _ in range(self.param.poly_modulus) ]
         # loc_error_plain = Poly(self.param.plain_modulus, self.param.poly_modulus, loc_error)
         # loc_error_plain._set_ntt_engine(self.param.ntt_engines[self.param.plain_modulus])
         # c1.add_poly_inplace(loc_error_plain)
-        ret = Ciphertext(self.param, [c0.neg_inplace(), c1], self.param._first_error_bound, True)
+        ret = Ciphertext(self.param, [c0, c1.neg_inplace()], self.param._first_error_bound, True)
         return ret

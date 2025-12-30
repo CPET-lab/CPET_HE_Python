@@ -12,7 +12,7 @@ class Encryptor:
         if not public_key.is_ntt_form():
             raise Exception("Public Key must be NTT form")
         self._param = parameter
-        self.public_key = public_key
+        self.public_key = public_key.copy()
 
     def encrypt(self, poly : Poly) -> Ciphertext:
         if poly.is_ntt_form():

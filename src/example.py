@@ -14,36 +14,25 @@ if __name__ == "__main__":
     encoder = Encoder(parms)
     keygen = Key_Generator(parms)
     secret_key = keygen.generate_secret_key()
-    # secret_key2 = keygen.generate_secret_key()
 
     secret_key.transform_from_ntt_form()
-    temp_plain = encoder.coeff_encode([0, 0, 0])
+    temp_plain = encoder.coeff_encode([1, 1, 0])
     secret_key._data = secret_key._eval_rns(temp_plain)
-    print("secret key\n" + secret_key.toString(parms.poly_modulus, False))
     secret_key.transform_to_ntt_form()
 
     public_key = keygen.generate_public_key(secret_key)
-
-    public_key._data[0] = secret_key.copy()
-    public_key._data[1] = public_key._data[0].copy().mul_inplace(secret_key).neg_inplace()
-
-    print("pk[0]\n" + public_key._data[0].transform_from_ntt_form().toString(parms.poly_modulus, False))
-    print("pk[1]\n" + public_key._data[1].transform_from_ntt_form().toString(parms.poly_modulus, False))
-    public_key._data[0].transform_to_ntt_form()
-    public_key._data[1].transform_to_ntt_form()
 
     encryptor = Encryptor(parms, public_key)
     decryptor = Decryptor(parms, secret_key)
 
     plain1 = encoder.coeff_encode([1, 2])
     plain2 = encoder.coeff_encode([1, 1, 0, 0, 0, 0, 0, 0, 0, 0])
-    # plain1.transform_from_ntt_form()
-    # plain2.transform_from_ntt_form()
+    
     c1 = encryptor.encrypt(plain1)
     c2 = encryptor.encrypt(plain2)
     pk_copy = public_key.copy()
     pk_copy._data[0].add_poly_inplace(plain2)
-    c3 = c1 * c2
+    c3 = c1 * c2 * c2
 
     print("c1\n" + c1.transform_from_ntt_form().toString(parms.poly_modulus, False))
     print("c2\n" + c2.transform_from_ntt_form().toString(parms.poly_modulus, False))
