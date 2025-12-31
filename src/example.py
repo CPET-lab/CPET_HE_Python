@@ -34,9 +34,5 @@ if __name__ == "__main__":
     pk_copy._data[0].add_poly_inplace(plain2)
     c3 = c1 * c2 * c2
 
-    print("c1\n" + c1.transform_from_ntt_form().toString(parms.poly_modulus, False))
-    print("c2\n" + c2.transform_from_ntt_form().toString(parms.poly_modulus, False))
-    print("c3\n" + c3.transform_from_ntt_form().toString(10, False))
-    c3.transform_to_ntt_form()
     d3 = decryptor.decrypt(c3)
     print("d3\n" + d3.toString(10, False))

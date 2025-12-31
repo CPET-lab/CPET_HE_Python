@@ -4,6 +4,9 @@ def _centered_modulus(n : int, modular : int) -> int:
         temp -= modular
     return temp
 
+def _modulus(n : int, modulus : int) -> int:
+    return n % modulus
+
 def extended_gcd(a, b):
     if a == 0:
         return b, 0, 1

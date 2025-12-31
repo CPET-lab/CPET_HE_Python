@@ -1,7 +1,8 @@
 import random
 
-def _random_mod_int(mod : int) -> int:
-    return random.randint(0, mod)
+# sample integer on Z_q
+def _random_int(q : int) -> int:
+    return random.randint(0, q - 1)
 
 def _random_centered_mod_int(mod : int) -> int:
     t = random.randint(0, mod)

@@ -1,5 +1,5 @@
 from he.galois_ring.poly import Poly
-from galois_ring.rns_poly import RNS_Poly
+from he.galois_ring.rns_poly import RNS_Poly
 from he.he_parameter import HE_Parameter
 from he.ciphertext import Ciphertext
 
