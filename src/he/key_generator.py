@@ -16,7 +16,7 @@ class Key_Generator:
             raise Exception("bound must be positive integer")
         ret = []
         for _ in range(self.param.poly_modulus):
-            ret.append(_random._random_centered_mod_int(bound))
+            ret.append(_random._random_bound_int(bound))
         return ret
 
     def generate_bound_poly(self, modulus : int, bound : int) -> Poly:
@@ -51,7 +51,7 @@ class Key_Generator:
         c1 = c0.copy()
         c1.mul_inplace(secret_key)
         loc_error = [ self.param.plain_modulus * \
-            _random._random_centered_mod_int(self.param._first_error_bound)\
+            _random._random_bound_int(self.param._first_error_bound)\
             for _ in range(self.param.poly_modulus) ]
         loc_error_plain = Poly(self.param.plain_modulus, self.param.poly_modulus, loc_error)
         loc_error_plain._set_ntt_engine(self.param.ntt_engines[self.param.plain_modulus])
