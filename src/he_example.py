@@ -14,12 +14,6 @@ if __name__ == "__main__":
     encoder = Encoder(parms)
     keygen = Key_Generator(parms)
     secret_key = keygen.generate_secret_key()
-
-    secret_key.transform_from_ntt_form()
-    temp_plain = encoder.coeff_encode([1, 1, 0])
-    secret_key._data = secret_key._eval_rns(temp_plain)
-    secret_key.transform_to_ntt_form()
-
     public_key = keygen.generate_public_key(secret_key)
 
     encryptor = Encryptor(parms, public_key)
