@@ -1,6 +1,6 @@
 from typing import Self
 from he.galois_ring._util import _modulus
-from he.galois_ring._util._ntt import _NTT_Engine
+from he._ntt import _NTT_Engine
 from he.galois_ring._util._prime import *
 
 # element of galois field Z_q[X]/f(X), negacyclic ring

@@ -1,6 +1,6 @@
 from he.galois_ring._util import _prime as prime
 from he.galois_ring._util import _modulus
-from he.galois_ring._util._ntt import _NTT_Engine
+from he._ntt import _NTT_Engine
 
 HE_SCHEME = {"bv", "bgv", "bfv"}
 
