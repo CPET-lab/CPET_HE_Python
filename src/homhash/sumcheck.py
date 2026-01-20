@@ -1,5 +1,5 @@
 from typing import Self
-from gkr.circuit import *
+from homhash.circuit import *
 
 class Prover:
     def __init__(self, eval_table):

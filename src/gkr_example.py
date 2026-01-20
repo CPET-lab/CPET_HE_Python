@@ -1,4 +1,4 @@
-from gkr.circuit import *
+from homhash.circuit import *
 from he.galois_ring.poly import Poly
 from he.he_parameter import HE_Parameter
 from he.encoder import Encoder
