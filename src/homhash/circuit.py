@@ -1,10 +1,13 @@
+import copy
 from enum import Enum
 from typing import Self
+from he.galois_ring.rns_poly import RNS_Poly
 from he.ciphertext import Ciphertext
 
 class OpType(Enum):
-    ADD = 0
-    MUL = 1
+    NONE = 0
+    ADD = 1
+    MULT = 2
 
 class Gate:
     def __init__(self, op : OpType, left : int, right : int):
@@ -26,19 +29,29 @@ class Layer:
     # gates[-1] : op = MUL, left = 0, right = 1 (0)
     # gates[-2] : op = ADD, left = 0, right = 1 (1)
     def __init__(self, gates : list[Gate]):
-        self.gates = gates + [Gate(OpType.ADD, -1, -2), Gate(OpType.MUL, -1, -2)]
+        self.gates = gates # + [Gate(OpType.ADD, -1, -2), Gate(OpType.MUL, -1, -2)]
         self.max_idx = 1
         while self.max_idx < len(gates):
             self.max_idx *= 2
     
-    def compute_layer(self, prev_data : list[Ciphertext], zero_cipher : Ciphertext) -> list[Ciphertext]:
+    def compute_layer(self, prev_data : list[Ciphertext], one_cipher : Ciphertext) -> list[Ciphertext]:
         ret = []
         for gate in self.gates:
             if gate.op == OpType.ADD:
                 # print("add")
-                ret.append((prev_data[gate.left] + prev_data[gate.right]) * zero_cipher)
-            elif gate.op == OpType.MUL:
+                ret.append((prev_data[gate.left] + prev_data[gate.right]) * one_cipher)
+            elif gate.op == OpType.MULT:
                 # print("mul")
+                ret.append(prev_data[gate.left] * prev_data[gate.right])
+        self.output = copy.deepcopy(ret)
+        return ret
+    
+    def compute_layer_poly(self, prev_data : list[RNS_Poly]) -> list[RNS_Poly]:
+        ret = []
+        for gate in self.gates:
+            if gate.op == OpType.ADD:
+                ret.append(prev_data[gate.left] + prev_data[gate.right])
+            elif gate.op == OpType.MULT:
                 ret.append(prev_data[gate.left] * prev_data[gate.right])
         return ret
     

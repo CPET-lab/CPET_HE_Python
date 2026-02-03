@@ -197,6 +197,26 @@ class Poly:
             self._data = res
         return self
     
+    def mul_scalar_inplace(self, scalar : int):
+        for i in range(len(self._data)):
+            self._data[i] = _modulus._centered_modulus(self._data[i] * scalar, self._coeff_modulus)
+        return self
+    
+    def mul_scalar(self, scalar : int):
+        ret = self.copy()
+        ret.mul_scalar_inplace(scalar)
+        return ret
+    
+    def equal(self, other : Self) -> bool:
+        if self.is_ntt_form() != other.is_ntt_form():
+            raise Exception(f"polynomial form is not match {self.is_ntt_form()} {other.is_ntt_form()}")
+        if self._coeff_modulus != other._coeff_modulus or self._poly_modulus != other._poly_modulus:
+            return False
+        for i in range(len(self._data)):
+            if self._data[i] != other._data[i]:
+                return False
+        return True
+    
     def centered_mod(self):
         for i in range(len(self._data)):
             self._data[i] = _modulus._centered_modulus(self._data[i], self._coeff_modulus)

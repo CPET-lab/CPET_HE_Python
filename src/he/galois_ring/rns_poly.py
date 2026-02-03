@@ -153,11 +153,31 @@ class RNS_Poly:
         return self
     
     def mul_poly_inplace(self, other : Poly):
-        if self.is_ntt_form() != other.is_ntt_form():
-            raise Exception("form is different")
-        other_rns = RNS_Poly(self._rns_base, self._poly_modulus, self.is_ntt_form())
+        if other.is_ntt_form():
+            other.transform_from_ntt_form()
+        other_rns = self.copy()
         other_rns._eval_rns(other)
+        if self.is_ntt_form():
+            other_rns.transform_to_ntt_form()
         self.mul_inplace(other_rns)
+    
+    def mul_scalar_inplace(self, scalar : int):
+        for _, poly in self._rns_poly.items():
+            poly.mul_scalar_inplace(scalar)
+        return self
+    
+    def mul_scalar(self, scalar : int):
+        ret = self.copy()
+        ret.mul_scalar_inplace(scalar)
+        return self
+    
+    def equal(self, other : Self) -> bool:
+        if self.is_ntt_form() != other.is_ntt_form():
+            raise Exception(f"polynomial form is not match {self.is_ntt_form()} {other.is_ntt_form()}")
+        for base in self._rns_base:
+            if not self._rns_poly[base].equal(other._rns_poly[base]):
+                return False
+        return True
     
     def is_ntt_form(self) -> bool:
         return self._is_ntt_form
