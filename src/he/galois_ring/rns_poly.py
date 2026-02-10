@@ -157,8 +157,10 @@ class RNS_Poly:
             other.transform_from_ntt_form()
         other_rns = self.copy()
         other_rns._eval_rns(other)
-        if self.is_ntt_form():
+        if not other_rns.is_ntt_form():
             other_rns.transform_to_ntt_form()
+        if not self.is_ntt_form():
+            self.transform_to_ntt_form()
         self.mul_inplace(other_rns)
     
     def mul_scalar_inplace(self, scalar : int):

@@ -1,3 +1,4 @@
+import copy
 from typing import Self
 from he.galois_ring.poly import Poly
 from he.galois_ring.rns_poly import RNS_Poly
@@ -21,23 +22,35 @@ class Ciphertext:
                     raise Exception(f"data form isn't match")
     
     def __add__(self, other : Self):
-        if self.size() != other.size():
-            raise Exception(f"ciphertext size is different")
         if self.is_ntt_form() != other.is_ntt_form():
             raise Exception(f"ciphertext form is defferent")
+        long, short = self, other
+        if self.size() < other.size():
+            long, short = other, self
+        diff = long.size() - short.size()
         ret = Ciphertext(self._param, [], self._error_bound + other._error_bound, self._is_ntt_form)
-        for idx in range(self.size()):
-            ret._data.append(self._data[idx] + other._data[idx])
+        for idx in range(diff):
+            ret._data.append(long._data[idx])
+        for idx in range(diff, long.size()):
+            ret._data.append(long._data[idx] + other._data[idx - diff])
         return ret
     
     def __sub__(self, other : Self):
-        if self.size() != other.size():
-            raise Exception(f"ciphertext size is different")
         if self.is_ntt_form() != other.is_ntt_form():
             raise Exception(f"ciphertext form is defferent")
         ret = Ciphertext(self._param, [], self._error_bound + other._error_bound, self._is_ntt_form)
-        for idx in range(self.size()):
-            ret._data.append(self._data[idx] - other._data[idx])
+        if self.size() >= other.size():
+            diff = self.size() - other.size()
+            for idx in range(diff):
+                ret._data.append(self._data[idx])
+            for idx in range(diff, self.size()):
+                ret._data.append(self._data[idx] - other._data[idx - diff])
+        else:
+            diff = other.size() - self.size()
+            for idx in range(diff):
+                ret._data.append(-1 * other._data[idx])
+            for idx in range(diff, other.size()):
+                ret._data.append(self._data[idx - diff] - other._data[idx])
         return ret
     
     def __neg__(self):
@@ -62,17 +75,29 @@ class Ciphertext:
         return Ciphertext(self._param, temp_data, temp_error_bound, self._is_ntt_form)
     
     def add_inplace(self, other : Self):
-        if self.size() != other.size():
-            raise Exception(f"ciphertext size is different")
-        for idx, rns_poly in enumerate(self._data):
-            rns_poly.add_inplace(other._data[idx])
+        if self.size() >= other.size():
+            diff = self.size() - other.size()
+            for idx in range(diff, self.size()):
+                self._data[idx].add_inplace(other._data[idx - diff])
+        else:
+            diff = other.size() - self.size()
+            for idx in range(diff, other.size()):
+                self._data[idx - diff].add_inplace(other._data[idx])
+            self._data = copy.deepcopy(other._data[:diff]) + self._data
         return self
     
     def sub_inplace(self, other : Self):
-        if self.size() != other.size():
-            raise Exception(f"ciphertext size is different")
-        for idx, rns_poly in enumerate(self._data):
-            rns_poly.sub_inplace(other._data[idx])
+        if self.size() >= other.size():
+            diff = self.size() - other.size()
+            for idx in range(diff, self.size()):
+                self._data[idx].sub_inplace(other._data[idx - diff])
+        else:
+            diff = other.size() - self.size()
+            for idx in range(diff, other.size()):
+                self._data[idx - diff].sub_inplace(other._data[idx])
+            self._data = copy.deepcopy(other._data[:diff]) + self._data
+            for idx in range(diff):
+                self._data[idx].neg_inplace()
         return self
     
     def neg_inplace(self):

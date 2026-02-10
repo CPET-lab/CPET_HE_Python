@@ -1,7 +1,7 @@
 import copy
 from typing import Self
 from homhash.circuit import *
-from homhash.cipher_hash import cipher_hash
+from proof.cipher_hash import cipher_hash
 from he.galois_ring.rns_poly import RNS_Poly
 from he.galois_ring.poly import Poly
 from he.galois_ring._util import _modulus

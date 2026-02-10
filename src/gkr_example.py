@@ -1,4 +1,4 @@
-from homhash.circuit import *
+from proof.circuit import *
 from he.galois_ring.poly import Poly
 from he.he_parameter import HE_Parameter
 from he.encoder import Encoder
@@ -7,7 +7,7 @@ from he.key_generator import Key_Generator
 from he.encryptor import Encryptor
 from he.decryptor import Decryptor
 from homhash.sumcheck import *
-from homhash.cipher_hash import *
+from proof.cipher_hash import *
 
 # string with (+, *)
 # "+*+" -> [a0 + a1, a2 * a3, a4 + a5]

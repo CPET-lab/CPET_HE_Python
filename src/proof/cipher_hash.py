@@ -26,5 +26,7 @@ def cipher_hash(cipher : Ciphertext, r_poly : Poly) -> RNS_Poly:
         rns_poly_copy = rns_poly.copy()
         rns_poly_copy.mul_poly_inplace(r_pow)
         ret += rns_poly_copy
+        if not r_pow.is_ntt_form():
+            r_pow.transform_to_ntt_form()
         r_pow *= r_pow
     return ret
