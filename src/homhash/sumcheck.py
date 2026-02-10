@@ -1,11 +1,11 @@
 import copy
 from typing import Self
-from homhash.circuit import *
+from proof.circuit import *
 from proof.cipher_hash import cipher_hash
 from he.galois_ring.rns_poly import RNS_Poly
 from he.galois_ring.poly import Poly
-from he.galois_ring._util import _modulus
-from he.galois_ring._util import _random
+from _util import _modulus
+from _util import _random
 from he.ciphertext import Ciphertext
 
 class Sumcheck_Prover:

@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Self
 from he.galois_ring.rns_poly import RNS_Poly
 from he.ciphertext import Ciphertext
-from he.galois_ring._util import _modulus
+from _util import _modulus
 from collections import deque
 
 class OpType(Enum):

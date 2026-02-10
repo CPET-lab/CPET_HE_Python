@@ -33,7 +33,7 @@ if __name__ == "__main__":
     # c2 = encryptor.encrypt(plain2)
     # pk_copy = public_key.copy()
     # pk_copy._data[0].add_poly_inplace(plain2)
-    # c3 = c1 * c2 * c2
+    # c3 = c1 * c2 + c2
 
     # # d3 = decryptor.decrypt(c3)
     # # print("d3\n" + d3.toString(10, False))
@@ -45,7 +45,7 @@ if __name__ == "__main__":
     # # c2.transform_to_ntt_form()
     # c1_hash = cipher_hash(c1, r_poly)
     # c2_hash = cipher_hash(c2, r_poly)
-    # c3_hash2 = c1_hash * c2_hash * c2_hash
+    # c3_hash2 = c1_hash * c2_hash + c2_hash
     # print("c3_hash2\n" + c3_hash2.toString(10, False))
 
     # print(f"equal : {c3_hash.equal(c3_hash2)}")
@@ -53,20 +53,20 @@ if __name__ == "__main__":
     #############################################
     #                Circuit Test               #
     #############################################
-    plain1 = encoder.coeff_encode([1, 1])
-    plain2 = encoder.coeff_encode([1, 2, 0, 0, 0, 0, 0, 0, 0, 0])
+    # plain1 = encoder.coeff_encode([1, 1])
+    # plain2 = encoder.coeff_encode([1, 2, 0, 0, 0, 0, 0, 0, 0, 0])
     
-    c1 = encryptor.encrypt(plain1)
-    c2 = encryptor.encrypt(plain2)
-    c3 = c1 * c2 + c2
+    # c1 = encryptor.encrypt(plain1)
+    # c2 = encryptor.encrypt(plain2)
+    # c3 = c1 * c2 + c2
 
-    d3 = decryptor.decrypt(c3)
-    print("d3\n" + d3.toString(10, False))
-    print()
+    # d3 = decryptor.decrypt(c3)
+    # print("d3\n" + d3.toString(10, False))
+    # print()
 
-    c = parse_circuit("0*1+2")
-    print(c.toString())
+    # c = parse_circuit("0*1+2")
+    # print(c.toString())
 
-    ret = c.compute_poly([c1, c2, c2])[0]
-    d4 = decryptor.decrypt(ret)
-    print("d4\n" + d4.toString(10, False))
+    # ret = c.compute_poly([c1, c2, c2])[0]
+    # d4 = decryptor.decrypt(ret)
+    # print("d4\n" + d4.toString(10, False))

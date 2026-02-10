@@ -1,5 +1,5 @@
 from typing import Self
-from he.galois_ring._util import _random
+from _util import _random
 from he.galois_ring.poly import Poly
 from he.galois_ring.rns_poly import RNS_Poly
 from he.he_parameter import HE_Parameter
