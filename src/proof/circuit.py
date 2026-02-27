@@ -10,6 +10,58 @@ class OpType(Enum):
     ADD = 0
     MULT = 1
 
+class Field:
+    def __init__(self, val, mod):
+        self.mod = mod
+        self.val = _modulus._centered_modulus(val, mod)
+    
+    def __add__(self, other):
+        return Field(self.val + other.val, self.mod)
+    
+    def __sub__(self, other):
+        return Field(self.val - other.val, self.mod)
+    
+    def __mul__(self, other):
+        return Field(self.val * other.val, self.mod)
+    
+    def __neg__(self):
+        return Field(-1 * self.val, self.mod)
+    
+    def __str__(self):
+        return f"{self.val}"
+    
+    def __eq__(self, other):
+        if self.mod != other.mod:
+            raise Exception("asdf")
+        if self.val == other.val:
+            return True
+        return False
+    
+    def __ne__(self, other):
+        if self.mod != other.mod:
+            raise Exception("asdf")
+        if self.val != other.val:
+            return True
+        return False
+    
+    def add(self, other : int):
+        return Field(self.val + other, self.mod)
+    
+    def sub(self, other : int):
+        return Field(self.val - other, self.mod)
+    
+    def mul(self, other : int):
+        return Field(self.val * other, self.mod)
+    
+    def eq(self, other : int):
+        if self.val == other:
+            return True
+        return False
+    
+    def copy(self):
+        return Field(self.val, self.mod)
+    
+
 class Gate:
     def __init__(self, op : OpType, left : int, right : int):
         self.op = op
@@ -48,15 +100,43 @@ class Gate:
             return _modulus._centered_modulus(data[self.left] + data[self.right], mod)
         elif self.op == OpType.MULT:
             return _modulus._centered_modulus(data[self.left] * data[self.right], mod)
+    
+    def compute_field(self, data : list[Field]) -> Field:
+        if len(data) < self.right:
+            raise Exception("data list is to small")
+        if self.op == OpType.ADD:
+            return data[self.left] + data[self.right]
+        elif self.op == OpType.MULT:
+            return data[self.left] * data[self.right]
         
+    def compute_list(self, data : list[list[Field]]) -> list[Field]:
+        if len(data) < self.right:
+            raise Exception("data list is to small")
+        ret = []
+        if self.op == OpType.ADD:
+            for i in range(len(data[0])):
+                ret.append(data[self.left][i] + data[self.right][i])
+        elif self.op == OpType.MULT:
+            for i in range(len(data[0])):
+                ret.append(data[self.left][i] * data[self.right][i])
+        return ret
+            
 class Layer:
     def __init__(self, gates : list[Gate]):
         self.gates = gates
         self.max_idx = 1
-        while self.max_idx < len(gates) + 1:
+        while self.max_idx < len(gates):
             self.max_idx *= 2
         while len(self.gates) < self.max_idx:
             self.gates.append(Gate(OpType.ADD, -1, -1))
+
+    # def __init__(self, gates : list[Gate]):
+    #     self.gates = gates
+    #     self.max_idx = 1
+    #     while self.max_idx < len(gates) + 1:
+    #         self.max_idx *= 2
+    #     while len(self.gates) < self.max_idx:
+    #         self.gates.append(Gate(OpType.ADD, -1, -1))
         
     def toString(self):
         ret = ""
@@ -78,7 +158,24 @@ class Layer:
             ret.append(gate.compute_int(mod, data))
         return ret
 
+    def compute_field(self, data : list[Field]) -> list[Field]:
+        data.append(data[0] - data[0])
+        ret = []
+        for gate in self.gates:
+            ret.append(gate.compute_field(data))
+        return ret
+    
+    def compute_list(self, data : list[list[Field]]) -> list[list[Field]]:
+        ret = []
+        for gate in self.gates:
+            ret.append(gate.compute_list(data))
+        return ret
+
+    def length(self) -> int:
+        return len(self.gates)
+
 class Circuit:
+    # layer 0 - input layer
     def __init__(self, layers : list[Layer]):
         self.layers = layers
     
@@ -90,22 +187,41 @@ class Circuit:
             ret += "\n"
         return ret
     
-    def compute_poly(self, data : list) -> list:
-        data1 = copy.deepcopy(data)
-        data2 = []
+    # input : list of polynomial (plain, cipher...)
+    # output : list of layer's output (output[layer][gates]), each elemenent is poly
+    def compute_poly(self, data : list):
+        data_copy = copy.deepcopy(data)
+        ret = [ copy.deepcopy(data_copy) ]
         for layer in self.layers:
-            data2 = copy.deepcopy(data1)
-            data1 = layer.compute_poly(data2)
-        return data1
-    
+            data_copy = layer.compute_poly(data_copy)
+            ret.append(copy.deepcopy(data_copy))
+        return ret
+        
     def compute_int(self, mod : int, data : list[int]) -> list[int]:
         data1 = copy.deepcopy(data)
-        data2 = []
         for layer in self.layers:
-            data2 = copy.deepcopy(data1)
-            data1 = layer.compute_int(mod, data2)
+            data1 = layer.compute_int(mod, data1)
         return data1
-            
+    
+    def compute_field(self, data : list[Field]) -> list[Field]:
+        data1 = copy.deepcopy(data)
+        for layer in self.layers:
+            data1 = layer.compute_field(data1)
+        return data1
+    
+    def compute_list(self, data : list[list[Field]]) -> list[list[Field]]:
+        data_copy = copy.deepcopy(data)
+        ret = [copy.deepcopy(data)]
+        for layer in self.layers:
+            data_copy = layer.compute_list(data_copy)
+            ret.append(copy.deepcopy(data_copy))
+        return ret
+        
+    def layer(self, layer_idx : int) -> Layer:
+        return self.layers[layer_idx]
+    
+    def length(self) -> int:
+        return len(self.layers)
 
 # str : '(', ')', '+', '*', input index (0 ~ i)
 # ex) "0*1+(2+3*4)+5*6"
