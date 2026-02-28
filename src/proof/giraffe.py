@@ -46,6 +46,7 @@ class Giraffe:
             prover.init_sumcheck(layer_idx)
 
             # II-2. phase 1
+            print(math.ceil(math.log2(self.subAC_num)))
             for round in range(math.ceil(math.log2(self.subAC_num))):
                 eval_list, coeff_list = prover.phase1(layer_idx)
                 rande = verifier.phase1(eval_list, coeff_list)
@@ -85,65 +86,37 @@ class Giraffe:
             for j in range(1, loglen + 1):
                 self._collapse(vec, 2 ** (loglen + 1 - j), r[j])
             return vec[0]
-        
-        # def _dotp_mult_collapse(self, vec : list[Field], r : list[Field]):
-        #     loglen = math.ceil(math.log2(len(vec)))
 
         def init_proof(self, init_subAC_idx : list[Field]):
             self.prev_gate = [ self.hasher.to_field(0) ] * 2
             self.prev_subAC = init_subAC_idx
-        
-        # def init_sumcheck(self, layer_idx : int):
-        #     self.W = copy.deepcopy(self.witness[layer_idx])
-            
-        #     # init termP1
-        #     self.A1 = [ self.hasher.to_field(0) for _ in range(2 ** len(self.prev_subAC)) ]
-        #     self.A1[0] = (-self.prev_subAC[0]).add(1)
-        #     self.A1[1] = self.prev_subAC[0]
-        #     for l in range(1, len(self.prev_subAC)):
-        #         for k in range(2 ** (len(self.prev_subAC) - l - 1)):
-        #             self.A1[2 * k] = ((-self.prev_subAC[l]).add(1)) * self.A1[k]
-        #             self.A1[2 * k + 1] = self.prev_subAC[l] * self.A1[k]
-        #     print("A1")
-        #     for a in self.A1:
-        #         print(a)
-
-        #     # init termP2
-        #     self.A2 = [ self.hasher.to_field(0) for _ in range(2 ** len(self.prev_gate)) ]
-        #     if len(self.prev_gate) == 0:
-        #         self.A2[0] = self.hasher.to_field(1)
-        #     else:
-        #         self.A2[0] = (-self.prev_gate[-1]).add(1)
-        #         self.A2[1] = self.prev_gate[-1]
-        #         for l in range(len(self.prev_gate) - 2, -1, -1):
-        #             for k in range(2 ** (len(self.prev_gate) - l - 1) - 1, -1, -1):
-        #                 self.A2[2 * k] = ((-self.prev_gate[l]).add(1)) * self.A2[k]
-        #                 self.A2[2 * k + 1] = self.prev_gate[l] * self.A2[k]
-        #     print("A2")
-        #     for a in self.A2:
-        #         print(a)
-        #     return
 
         def init_sumcheck(self, layer_idx : int):
             self.W = copy.deepcopy(self.witness[layer_idx])
 
-            # init termP1
+            # # init termP1
             self.A1 = [ self.hasher.to_field(0) for _ in range(2 ** len(self.prev_subAC)) ]
             self.A1[0] = (-self.prev_subAC[-1]).add(1)
             self.A1[1] = self.prev_subAC[-1]
-            for l in range(len(self.prev_subAC) - 2, -1, -1):
-                for k in range(2 ** (len(self.prev_subAC) - l - 1) - 1, -1, -1):
-                    self.A1[2 * k] = ((-self.prev_subAC[l]).add(1)) * self.A1[k]
-                    self.A1[2 * k + 1] = self.prev_subAC[l] * self.A1[k]
 
-            # init termP2
+            # # init termP2
             self.A2 = [ self.hasher.to_field(0) for _ in range(2 ** len(self.prev_gate)) ]
             self.A2[0] = (-self.prev_gate[-1]).add(1)
             self.A2[1] = self.prev_gate[-1]
+
+            # init termP1 (수정됨)
+            for l in range(len(self.prev_subAC) - 2, -1, -1):
+                for k in range(2 ** (len(self.prev_subAC) - l - 1) - 1, -1, -1):
+                    temp = self.A1[k]  # 원본 값 임시 보관
+                    self.A1[2 * k] = ((-self.prev_subAC[l]).add(1)) * temp
+                    self.A1[2 * k + 1] = self.prev_subAC[l] * temp
+
+            # init termP2 (수정됨)
             for l in range(len(self.prev_gate) - 2, -1, -1):
                 for k in range(2 ** (len(self.prev_gate) - l - 1) - 1, -1, -1):
-                    self.A2[2 * k] = ((-self.prev_gate[l]).add(1)) * self.A2[k]
-                    self.A2[2 * k + 1] = self.prev_gate[l] * self.A2[k]
+                    temp = self.A2[k]  # 원본 값 임시 보관
+                    self.A2[2 * k] = ((-self.prev_gate[l]).add(1)) * temp
+                    self.A2[2 * k + 1] = self.prev_gate[l] * temp
         
         def get_coefficients_d3(self, evals):
             """
@@ -236,25 +209,36 @@ class Giraffe:
             self.subAC_num = len(input[0])
             self.claimed_output = claimed_output
 
+        def _collapse(self, vec : list[Field], len : int, r : Field):
+            for sigma in range(len // 2):
+                vec[sigma] = (-r).add(1) * vec[2 * sigma] + r * vec[2 * sigma + 1]
+        
+        # len(r) = log |vec|
+        def _multi_collapse(self, vec : list[Field], r : list[Field]):
+            loglen = math.ceil(math.log2(len(vec)))
+            for j in range(loglen):
+                self._collapse(vec, 2 ** (loglen - j), r[j])
+            return vec[0]
+
         # return q' (sub-AC index)
         def init_proof(self) -> list[Field]:
             self.qp = [ self.hasher.sampling_field() for _ in range(math.ceil(math.log2(self.subAC_num))) ]
-            self.qp = [ self.hasher.to_field(1) for _ in range(math.ceil(math.log2(self.subAC_num))) ]
+            # self.qp = [ self.hasher.to_field(2) for _ in range(math.ceil(math.log2(self.subAC_num))) ]
             temp = copy.deepcopy(self.claimed_output)
-            for e in temp:
-                print(e)
             for j in range(len(self.qp)):
                 length = 2 ** (len(self.qp) - j)
                 for i in range(length // 2):
                     temp[i] = (-self.qp[j]).add(1) * temp[2 * i] + self.qp[j] * temp[2 * i + 1]
-            for e in temp:
-                print(e)
             self.prev_claim = temp[0]
+            # self.prev_claim = self._multi_collapse(temp, self.qp)
             return self.qp
         
         def phase1(self, eval : list[Field], coeff : list[Field]) -> Field:
             # integrity check
             print(f"phase1: ", self.prev_claim, eval[0] + eval[1])
+            print("eval")
+            for e in eval:
+                print(e)
             if self.prev_claim != eval[0] + eval[1]:
                 raise Exception("not valid")
             for i in range(-1, 3):
