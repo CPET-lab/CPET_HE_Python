@@ -45,3 +45,6 @@ class HomHash_Manager:
     
     def sampling_field(self) -> Field:
         return Field(_random._random_int(self.min_coeff), self.min_coeff)
+    
+    def sampling_field_range(self, start : int) -> Field:
+        return Field(_random._random_int(self.min_coeff - start) + start, self.min_coeff)

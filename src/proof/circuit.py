@@ -209,7 +209,7 @@ class Circuit:
             data1 = layer.compute_field(data1)
         return data1
     
-    def compute_list(self, data : list[list[Field]]) -> list[list[Field]]:
+    def compute_list(self, data : list[list[Field]]) -> list[list[list[Field]]]:
         data_copy = copy.deepcopy(data)
         ret = [copy.deepcopy(data)]
         for layer in self.layers:
