@@ -7,7 +7,8 @@ from he.encryptor import Encryptor
 from he.decryptor import Decryptor
 from proof.cipher_hash import *
 from proof.circuit import *
-from proof.giraffe import *
+from proof.giraffe_backup import *
+from proof import giraffe
 
 if __name__ == "__main__":
 
@@ -65,22 +66,22 @@ if __name__ == "__main__":
 
     print(c.toString())
 
-    ret = c.compute_poly([c1, c1, c1, c1, c2, c2, c2, c2])
-    d4 = decryptor.decrypt(ret[-1][0])
-    print("d4\n" + d4.toString(10, False))
+    # ret = c.compute_poly([c1, c1, c1, c1, c2, c2, c2, c2])
+    # d4 = decryptor.decrypt(ret[-1][0])
+    # print("d4\n" + d4.toString(10, False))
 
-    for i, l in enumerate(ret):
-        print(f"\nlayer {i}:")
-        for j, p in enumerate(l):
-            d = decryptor.decrypt(p)
-            print(f"{j} poly : {d.toString(10, False)}")
+    # for i, l in enumerate(ret):
+    #     print(f"\nlayer {i}:")
+    #     for j, p in enumerate(l):
+    #         d = decryptor.decrypt(p)
+    #         print(f"{j} poly : {d.toString(10, False)}")
 
 
     #############################################
     #                Giraffe Test               #
     #############################################
-    data = [ [ i for _ in range(8)] for i in range(8) ]
-    hasher = HomHash_Manager(parms)
-    hasher.min_coeff = 1009
-
-    giraffe = Giraffe(c, data, hasher)
+    # hasher = HomHash_Manager(parms)
+    fielder = Fielder(1009)
+    data = [ [ fielder.to_field(i) for _ in range(8)] for i in range(8) ]
+    demo = giraffe.Demo()
+    demo.giraffe_basic(c, data, fielder, True)

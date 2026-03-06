@@ -4,63 +4,13 @@ from typing import Self
 from he.galois_ring.rns_poly import RNS_Poly
 from he.ciphertext import Ciphertext
 from _util import _modulus
+from _util import _random
+from _util._field import *
 from collections import deque
 
 class OpType(Enum):
     ADD = 0
     MULT = 1
-
-class Field:
-    def __init__(self, val, mod):
-        self.mod = mod
-        self.val = _modulus._centered_modulus(val, mod)
-    
-    def __add__(self, other):
-        return Field(self.val + other.val, self.mod)
-    
-    def __sub__(self, other):
-        return Field(self.val - other.val, self.mod)
-    
-    def __mul__(self, other):
-        return Field(self.val * other.val, self.mod)
-    
-    def __neg__(self):
-        return Field(-1 * self.val, self.mod)
-    
-    def __str__(self):
-        return f"{self.val}"
-    
-    def __eq__(self, other):
-        if self.mod != other.mod:
-            raise Exception("asdf")
-        if self.val == other.val:
-            return True
-        return False
-    
-    def __ne__(self, other):
-        if self.mod != other.mod:
-            raise Exception("asdf")
-        if self.val != other.val:
-            return True
-        return False
-    
-    def add(self, other : int):
-        return Field(self.val + other, self.mod)
-    
-    def sub(self, other : int):
-        return Field(self.val - other, self.mod)
-    
-    def mul(self, other : int):
-        return Field(self.val * other, self.mod)
-    
-    def eq(self, other : int):
-        if self.val == other:
-            return True
-        return False
-    
-    def copy(self):
-        return Field(self.val, self.mod)
-    
 
 class Gate:
     def __init__(self, op : OpType, left : int, right : int):
