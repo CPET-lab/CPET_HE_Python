@@ -100,4 +100,4 @@ if __name__ == "__main__":
     # data2 = [[j for j in range(2)] for i in range(4)]
     # demo.matrix_mult(data1, data2, parms, False)
 
-    demo.poly_func([1, 3, 5, 7, 9], [2, 1], parms, False)
+    demo.poly_func([1, 3, 5, 7, 9], [2, 1, 2, 0, 0, 0], parms, False)

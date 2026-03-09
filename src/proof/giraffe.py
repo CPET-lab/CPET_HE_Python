@@ -393,7 +393,7 @@ class Demo:
     
     # return claimed_output
     # if timecheck is true, (claimed_output, prover time, verifier time)
-    def giraffe_basic(self, circuit : Circuit, input : list[list[Field]], fielder : Fielder, debug=False, timecheck=False):
+    def giraffe_basic(self, circuit : Circuit, input : list[list[Field]], fielder : Fielder, debug=False):
         self.debug = debug
         subAC_num = len(input[0])
         self.log("giraffe basic")
@@ -440,14 +440,14 @@ class Demo:
             prover.init_sumcheck(tau)
         
         self.log("Accept")
-
-        if timecheck == False:
-            return ret_output
-        else:
-            return ret_output, prover.running_time, verifier.running_time
+        
+        return ret_output, prover.running_time, verifier.running_time
         
     def giraffe_cipher(self, circuit : Circuit, cipher_input : list[Ciphertext], param : HE_Parameter, debug=False):
         self.debug = debug
+
+        prover_time = 0
+        verifier_time = 0
 
         # ciphertext -> Field list
         hasher = HomHash_Manager(param)
@@ -459,29 +459,29 @@ class Demo:
             for _bais in param.coeff_modulus:
                 input_dict[_bais].append(fielder_dict[_bais].to_field_list(hashed_cipher._rns_poly[_bais]._data))
         end = time.perf_counter()
-        print(f"input hashing time: {end - start}")
+        self.log(f"input hashing time: {end - start}")
+        prover_time += end - start
+        verifier_time += end - start
 
-        prover_time = 0
-        verifier_time = 0
         output_dict = {}
         for _bais in param.coeff_modulus:
-            to, tp, tv = self.giraffe_basic(circuit, input_dict[_bais], fielder_dict[_bais], debug, True)
+            to, tp, tv = self.giraffe_basic(circuit, input_dict[_bais], fielder_dict[_bais], debug)
             prover_time += tp
             verifier_time += tv
             output_dict[_bais] = to
         
-        print(f"prover time: {prover_time}")
-        print(f"verifier time: {verifier_time}")
+        self.log(f"prover time: {prover_time}")
+        self.log(f"verifier time: {verifier_time}")
         
         # check result
         start = time.perf_counter()
         eval_result = circuit.compute_poly(cipher_input)
         end = time.perf_counter()
-        print(f"circuit evaluation time: {end - start}")
+        self.log(f"circuit evaluation time: {end - start}")
         start = time.perf_counter()
         hashed_result = hasher.cipher_hash(eval_result)
         end = time.perf_counter()
-        print(f"result hashing time: {end - start}")
+        self.log(f"result hashing time: {end - start}")
         is_same = True
         for _bais in param.coeff_modulus:
             hashed_result_field = fielder_dict[_bais].to_field_list(hashed_result._rns_poly[_bais]._data)
@@ -490,6 +490,8 @@ class Demo:
                 is_same = False
                 print(f"base {_bais} false")
         self.log(is_same)
+
+        return prover_time, verifier_time, eval_result
 
     # matrix multiplication A x B
     # input : [column][row]
@@ -551,3 +553,4 @@ class Demo:
         circuit = build_poly_circuit(coeff)
         print(circuit.toString())
         self.giraffe_cipher(circuit, input_cipher, param, debug)
+        
