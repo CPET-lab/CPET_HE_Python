@@ -7,8 +7,8 @@ from he.encryptor import Encryptor
 from he.decryptor import Decryptor
 from proof.cipher_hash import *
 from proof.circuit import *
-from proof.giraffe_backup import *
 from proof import giraffe
+import time
 
 if __name__ == "__main__":
 
@@ -80,8 +80,17 @@ if __name__ == "__main__":
     #############################################
     #                Giraffe Test               #
     #############################################
-    # hasher = HomHash_Manager(parms)
-    fielder = Fielder(1009)
-    data = [ [ fielder.to_field(i) for _ in range(8)] for i in range(8) ]
     demo = giraffe.Demo()
-    demo.giraffe_basic(c, data, fielder, True)
+
+    # field list giraffe test
+    # fielder = Fielder(1009)
+    # data = [ [ fielder.to_field(i) for _ in range(8)] for i in range(8) ]
+    # demo.giraffe_basic(c, data, fielder, True)
+
+    # ciphertext giraffe test
+    plain_data = [encoder.slot_encode([i for _ in range(10)]) for i in range(8)]
+    start = time.perf_counter()
+    cipher_data = [encryptor.encrypt(_plain.transform_from_ntt_form()) for _plain in plain_data]
+    end = time.perf_counter()
+    print(f"encode + encrypt time: {end - start}")
+    demo.giraffe_cipher(c, cipher_data, parms, False)

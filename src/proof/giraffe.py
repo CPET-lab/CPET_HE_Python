@@ -1,5 +1,6 @@
 import copy
 import math
+import time
 from he.galois_ring.poly import Poly
 from he.galois_ring.rns_poly import RNS_Poly
 from he.he_parameter import HE_Parameter
@@ -53,6 +54,7 @@ class Prover:
         self.fielder = fielder
         self.debug = debug
         self.subAC_num = len(input[0])
+        self.running_time = 0
 
     def log(self, *objects, sep=' ', end='\n'):
         if self.debug == True:
@@ -72,10 +74,15 @@ class Prover:
         return self.witness[-1][0]
 
     def init_proof(self, init_gate : list[Field], init_subAC : list[Field]):
+        start = time.perf_counter()
         self.prev_gate = init_gate
         self.prev_subAC = init_subAC
+        end = time.perf_counter()
+        self.running_time += (end - start)
     
     def init_phase1(self, layer_idx : int):
+        start = time.perf_counter()
+
         self.W = copy.deepcopy(self.witness[layer_idx])
         self.rand_subAC = []
 
@@ -84,8 +91,13 @@ class Prover:
         self.A2 = [None for _ in range(self.circuit.layer(layer_idx).length())]  # for termP2
         _init_chi_vec(self.A1, self.prev_subAC)
         _init_chi_vec(self.A2, self.prev_gate)
+
+        end = time.perf_counter()
+        self.running_time += (end - start)
     
     def init_phase2(self, layer_idx : int):
+        start = time.perf_counter()
+
         eq_val = self.fielder.to_field(1)
         for i in range(len(self.prev_subAC)):
             eq_val *= _eq(self.prev_subAC[i], self.rand_subAC[i])
@@ -95,9 +107,14 @@ class Prover:
         self.W_backup = [self.W[j][0] for j in range(len(self.W))]
         self.wl, self.wr = copy.deepcopy(self.W_backup), copy.deepcopy(self.W_backup)
         self.r0, self.r1 = [], []
+
+        end = time.perf_counter()
+        self.running_time += (end - start)
     
     # return coeff (x^3, x^2, x^1, x^0)
     def phase1(self, layer_idx : int) -> list[Field]:
+        start = time.perf_counter()
+
         eval = [self.fielder.to_field(0) for _ in range(4)]
         layer = self.circuit.layer(layer_idx)
         for gate_idx, gate in enumerate(layer.gates):
@@ -127,9 +144,15 @@ class Prover:
                         eval[j] += termP1[j] * self.A2[gate_idx] * (termL[j] + termR[j])
                     elif gate.op == OpType.MULT:
                         eval[j] += termP1[j] * self.A2[gate_idx] * (termL[j] * termR[j])
-        return self.fielder.get_coeff_d3(eval)
+        ret =  self.fielder.get_coeff_d3(eval)
+
+        end = time.perf_counter()
+        self.running_time += (end - start)
+        return ret
     
     def phase1_update(self, rand_req : Field):
+        start = time.perf_counter()
+
         self.rand_subAC.append(rand_req)
         for i, _w in enumerate(self.W):
             _collapse(_w, len(_w), rand_req)
@@ -137,8 +160,13 @@ class Prover:
         _collapse(self.A1, len(self.A1), rand_req)
         self.A1 = self.A1[:len(self.A1) // 2]
 
+        end = time.perf_counter()
+        self.running_time += (end - start)
+
     # return coeff (x^2, x^1, x^0)
     def phase2(self, layer_idx : int, round : int) -> list[Field]:
+        start = time.perf_counter()
+
         eval = [self.fielder.to_field(0) for _ in range(3)]
         layer = self.circuit.layer(layer_idx)
         bg = _calc_bg(self.circuit, layer_idx, self.input)
@@ -166,10 +194,16 @@ class Prover:
                     eval[i] += termP[i] * (termL[i] + termR[i])
                 elif gate.op == OpType.MULT:
                     eval[i] += termP[i] * (termL[i] * termR[i])
-        return self.fielder.get_coeff_d2(eval)
+        ret = self.fielder.get_coeff_d2(eval)
+
+        end = time.perf_counter()
+        self.running_time += (end - start)
+        return ret
     
     # V_i = (1 - r) * V_i(0) + r * V_i(1)
     def phase2_update(self, layer_idx : int, round : int, rand_req : Field):
+        start = time.perf_counter()
+
         bg = _calc_bg(self.circuit, layer_idx, self.input)
         if round < bg:
             self.r0.append(rand_req)
@@ -197,9 +231,14 @@ class Prover:
         else:
             _collapse(self.wr, len(self.wr), rand_req)
             self.wr = self.wr[:len(self.wr) // 2]
+        
+        end = time.perf_counter()
+        self.running_time += (end - start)
     
     # return layer function coeff
     def end_sumcheck(self, layer_idx : int) -> list[Field]:
+        start = time.perf_counter()
+
         bg = _calc_bg(self.circuit, layer_idx, self.input)
         eval = []
         for l in range(bg + 1):
@@ -211,13 +250,22 @@ class Prover:
                 _collapse(eval_val, len(eval_val), r)
                 eval_val = eval_val[:len(eval_val) // 2]
             eval.append(eval_val[0])
-        return self.fielder.get_coefficients_general(eval)
+        ret = self.fielder.get_coefficients_general(eval)
+
+        end = time.perf_counter()
+        self.running_time += (end - start)
+        return ret
     
     def init_sumcheck(self, tau : Field):
+        start = time.perf_counter()
+
         self.prev_gate = []
         for k in range(len(self.r0)):
             self.prev_gate.append((self.r1[k] - self.r0[k]) * tau + self.r0[k])
         self.prev_subAC = self.rand_subAC
+
+        end = time.perf_counter()
+        self.running_time += (end - start)
 
 
 class Verifier:
@@ -227,6 +275,7 @@ class Verifier:
         self.fielder = fielder
         self.debug = debug
         self.subAC_num = len(input[0])
+        self.running_time = 0
 
     def log(self, *objects, sep=' ', end='\n'):
         if self.debug == True:
@@ -241,12 +290,19 @@ class Verifier:
     
     # return initial random gate, sub-AC index
     def init_proof(self, claimed_output : list[Field]) -> tuple[list[Field], list[Field]]:
+        start = time.perf_counter()
+
         self.prev_gate = [self.fielder.to_field(0)]
         self.prev_subAC = [self.fielder.sampling_field() for _ in range(_bit_len(self.subAC_num))]
         self.prev_claim = _multi_collapse(claimed_output, self.prev_subAC)
+
+        end = time.perf_counter()
+        self.running_time += (end - start)
         return self.prev_gate, self.prev_subAC
     
     def init_sumcheck(self, layer_idx : int):
+        start = time.perf_counter()
+
         gate_num = self.circuit.layer(layer_idx).length()
         next_gate_len = _next_gate_len(self.circuit, layer_idx, self.input)
         bg = _calc_bg(self.circuit, layer_idx, self.input)
@@ -264,15 +320,25 @@ class Verifier:
         _init_chi_vec(self.Aq, self.prev_gate)
         _init_chi_vec(self.Ar0, self.r0)
         _init_chi_vec(self.Ar1, self.r1)
+
+        end = time.perf_counter()
+        self.running_time += (end - start)
     
     def phase1(self, coeff : list[Field], round : int) -> Field:
+        start = time.perf_counter()
+
         if self.prev_claim != self.horner(coeff, self.fielder.to_field(0)) + self.horner(coeff, self.fielder.to_field(1)):
             raise Exception("not valid")
         rand_req = self.rp[round]
         self.prev_claim = self.horner(coeff, rand_req)
+
+        end = time.perf_counter()
+        self.running_time += (end - start)
         return rand_req
     
     def phase2(self, layer_idx : int, coeff : list[Field], round : int) -> Field:
+        start = time.perf_counter()
+
         if self.prev_claim != self.horner(coeff, self.fielder.to_field(0)) + self.horner(coeff, self.fielder.to_field(1)):
             raise Exception("not valid")
         bg = _calc_bg(self.circuit, layer_idx, self.input)
@@ -281,10 +347,15 @@ class Verifier:
         else:
             rand_req = self.r1[round - bg]
         self.prev_claim = self.horner(coeff, rand_req)
+
+        end = time.perf_counter()
+        self.running_time += (end - start)
         return rand_req
 
     # return tau
     def end_sumcheck(self, layer_idx : int, coeff : list[Field]) -> Field:
+        start = time.perf_counter()
+
         layer = self.circuit.layer(layer_idx)
         add_val, mult_val = self.fielder.to_field(0), self.fielder.to_field(0)
         for gate_idx, gate in enumerate(layer.gates):
@@ -309,6 +380,8 @@ class Verifier:
         for k in range(len(self.r0)):
             self.prev_gate.append((self.r1[k] - self.r0[k]) * tau + self.r0[k])
         
+        end = time.perf_counter()
+        self.running_time += (end - start)
         return tau
 
 
@@ -317,8 +390,10 @@ class Demo:
     def log(self, *objects, sep=' ', end='\n'):
         if self.debug == True:
             print(*objects, sep, end)
-
-    def giraffe_basic(self, circuit : Circuit, input : list[list[Field]], fielder : Fielder, debug=False):
+    
+    # return claimed_output
+    # if timecheck is true, (claimed_output, prover time, verifier time)
+    def giraffe_basic(self, circuit : Circuit, input : list[list[Field]], fielder : Fielder, debug=False, timecheck=False):
         self.debug = debug
         subAC_num = len(input[0])
         self.log("giraffe basic")
@@ -326,6 +401,7 @@ class Demo:
         prover = Prover(circuit, input, fielder, debug)
         verifier = Verifier(circuit, input, fielder, debug)
         claimed_output = prover.eval_circuit()
+        ret_output = copy.deepcopy(claimed_output)
         init_gate, init_subAC = verifier.init_proof(claimed_output)
         prover.init_proof(init_gate, init_subAC)
 
@@ -363,8 +439,52 @@ class Demo:
             self.log(f"tau: {tau}")
             prover.init_sumcheck(tau)
         
-        print("Accept")
+        self.log("Accept")
 
+        if timecheck == False:
+            return ret_output
+        else:
+            return ret_output, prover.running_time, verifier.running_time
         
-    def giraffe_cipher(self, circuit : Circuit, cipher_input : list[list[Ciphertext]], debug=False):
+    def giraffe_cipher(self, circuit : Circuit, cipher_input : list[Ciphertext], param : HE_Parameter, debug=False):
         self.debug = debug
+
+        # ciphertext -> Field list
+        hasher = HomHash_Manager(param)
+        fielder_dict = {key: Fielder(key) for key in param.coeff_modulus}
+        input_dict = {key: [] for key in param.coeff_modulus}
+        start = time.perf_counter()
+        for _cipher in cipher_input:
+            hashed_cipher = hasher.cipher_hash(_cipher)
+            for _bais in param.coeff_modulus:
+                input_dict[_bais].append(fielder_dict[_bais].to_field_list(hashed_cipher._rns_poly[_bais]._data))
+        end = time.perf_counter()
+        print(f"input hashing time: {end - start}")
+
+        prover_time = 0
+        verifier_time = 0
+        output_dict = {}
+        for _bais in param.coeff_modulus:
+            to, tp, tv = self.giraffe_basic(circuit, input_dict[_bais], fielder_dict[_bais], debug, True)
+            prover_time += tp
+            verifier_time += tv
+            output_dict[_bais] = to
+        
+        print(f"prover time: {prover_time}")
+        print(f"verifier time: {verifier_time}")
+        
+        # check result
+        start = time.perf_counter()
+        eval_result = circuit.compute_poly(cipher_input)
+        end = time.perf_counter()
+        print(f"circuit evaluation time: {end - start}")
+        start = time.perf_counter()
+        hashed_result = hasher.cipher_hash(eval_result)
+        end = time.perf_counter()
+        print(f"result hashing time: {end - start}")
+        is_same = True
+        for _bais in param.coeff_modulus:
+            hashed_result_field = fielder_dict[_bais].to_field_list(hashed_result._rns_poly[_bais]._data)
+            same = all(hashed_result_field[i] == output_dict[_bais][i] for i in range(len(output_dict[_bais])))
+            if not same: is_same = False
+        self.log(is_same)

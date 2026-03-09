@@ -53,11 +53,14 @@ class Field:
         return Field(self.val, self.mod)
     
 class Fielder:
-    def __init__(self, mod):
+    def __init__(self, mod : int):
         self.mod = mod
     
     def to_field(self, val : int) -> Field:
         return Field(val, self.mod)
+    
+    def to_field_list(self, data : list[int]) -> list[Field]:
+        return [self.to_field(d) for d in data]
     
     def sampling_field(self) -> Field:
         return Field(_random._random_int(self.mod), self.mod)
