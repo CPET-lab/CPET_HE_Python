@@ -10,7 +10,7 @@ from proof.cipher_hash import *
 
 def _next_gate_len(circuit : Circuit, layer_idx : int, input) -> int:
     if layer_idx == 0:
-        return len(input)
+        return 1 << (len(input) - 1).bit_length()
     return circuit.layer(layer_idx - 1).length()
 
 def _calc_bg(circuit : Circuit, layer_idx : int, input) -> int:
@@ -486,5 +486,68 @@ class Demo:
         for _bais in param.coeff_modulus:
             hashed_result_field = fielder_dict[_bais].to_field_list(hashed_result._rns_poly[_bais]._data)
             same = all(hashed_result_field[i] == output_dict[_bais][i] for i in range(len(output_dict[_bais])))
-            if not same: is_same = False
+            if not same: 
+                is_same = False
+                print(f"base {_bais} false")
         self.log(is_same)
+
+    # matrix multiplication A x B
+    # input : [column][row]
+    # A: k x n, B: n x l
+    def matrix_mult(self, matrixA : list[list[int]], matrixB : list[list[int]], param : HE_Parameter, debug = False):
+        self.debug = debug
+        
+        # HE setting
+        encoder = Encoder(param)
+        keygen = Key_Generator(param)
+        secret_key = keygen.generate_secret_key()
+        public_key = keygen.generate_public_key(secret_key)
+        encryptor = Encryptor(param, public_key)
+        decryptor = Decryptor(param, secret_key)
+
+        # matrix A: column packing
+        dataA_list = []
+        for i in range(len(matrixA[0])):
+            dataA_list.append([matrixA[j][i] for j in range(len(matrixA))])
+        plainA_list = [encoder.slot_encode(data) for data in dataA_list]
+        cipherA_list = [encryptor.encrypt(plain.transform_from_ntt_form()) for plain in plainA_list]  # k ciphertext
+
+        # matrix B: row packing
+        plainB_list = [encoder.slot_encode(data) for data in matrixB]
+        cipherB_list = [encryptor.encrypt(plain.transform_from_ntt_form()) for plain in plainB_list]  # l ciphertext
+
+        # circuit setting
+        circuit_list = []
+        for i in range(len(cipherA_list)):
+            for j in range(len(cipherA_list), len(cipherA_list) + len(cipherB_list)):
+                circuit_list.append(f"({i}*{j})+")
+        circuit_list[-1] = circuit_list[-1][:-1]
+        circuit_str = "".join(circuit_list)
+        self.log(circuit_str)
+        c = parse_circuit(circuit_str)
+        print(c.toString())
+        input_cipher = cipherA_list + cipherB_list
+
+        self.giraffe_cipher(c, input_cipher, param, debug)
+
+    # coeff : [x^0, x^1, ...]
+    def poly_func(self, data : list[int], coeff : list[int], param : HE_Parameter, debug = False):
+        self.debug = debug
+        
+        # HE setting
+        encoder = Encoder(param)
+        keygen = Key_Generator(param)
+        secret_key = keygen.generate_secret_key()
+        public_key = keygen.generate_public_key(secret_key)
+        encryptor = Encryptor(param, public_key)
+        decryptor = Decryptor(param, secret_key)
+
+        # len(input_cipher) must be power of 2
+        input_cipher = [
+            encryptor.encrypt(encoder.slot_encode(data).transform_from_ntt_form()),
+            *[encryptor.encrypt(encoder.coeff_encode([_coeff])) for _coeff in coeff],
+            encryptor.encrypt(encoder.coeff_encode([0]))
+        ]
+        circuit = build_poly_circuit(coeff)
+        print(circuit.toString())
+        self.giraffe_cipher(circuit, input_cipher, param, debug)

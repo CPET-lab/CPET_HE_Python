@@ -57,14 +57,14 @@ if __name__ == "__main__":
     #############################################
     #                Circuit Test               #
     #############################################
-    plain1 = encoder.coeff_encode([1, 1])
-    plain2 = encoder.coeff_encode([1, 2, 0, 0, 0, 0, 0, 0, 0, 0])
+    # plain1 = encoder.coeff_encode([1, 1])
+    # plain2 = encoder.coeff_encode([1, 2, 0, 0, 0, 0, 0, 0, 0, 0])
     
-    c1 = encryptor.encrypt(plain1)
-    c2 = encryptor.encrypt(plain2)
-    c = parse_circuit("((0*1)+(2+3))*((4*5)+(6*7))")
+    # c1 = encryptor.encrypt(plain1)
+    # c2 = encryptor.encrypt(plain2)
+    # c = parse_circuit("((0*1)+(2+3))*((4*5)+(6*7))")
 
-    print(c.toString())
+    # print(c.toString())
 
     # ret = c.compute_poly([c1, c1, c1, c1, c2, c2, c2, c2])
     # d4 = decryptor.decrypt(ret[-1][0])
@@ -88,9 +88,16 @@ if __name__ == "__main__":
     # demo.giraffe_basic(c, data, fielder, True)
 
     # ciphertext giraffe test
-    plain_data = [encoder.slot_encode([i for _ in range(10)]) for i in range(8)]
-    start = time.perf_counter()
-    cipher_data = [encryptor.encrypt(_plain.transform_from_ntt_form()) for _plain in plain_data]
-    end = time.perf_counter()
-    print(f"encode + encrypt time: {end - start}")
-    demo.giraffe_cipher(c, cipher_data, parms, False)
+    # plain_data = [encoder.slot_encode([i for _ in range(10)]) for i in range(8)]
+    # start = time.perf_counter()
+    # cipher_data = [encryptor.encrypt(_plain.transform_from_ntt_form()) for _plain in plain_data]
+    # end = time.perf_counter()
+    # print(f"encode + encrypt time: {end - start}")
+    # demo.giraffe_cipher(c, cipher_data, parms, False)
+
+    # matrix multiplication giraffe test
+    # data1 = [[i for j in range(4)] for i in range(3)]
+    # data2 = [[j for j in range(2)] for i in range(4)]
+    # demo.matrix_mult(data1, data2, parms, False)
+
+    demo.poly_func([1, 3, 5, 7, 9], [2, 1], parms, False)
