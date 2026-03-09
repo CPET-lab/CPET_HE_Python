@@ -88,6 +88,7 @@ if __name__ == "__main__":
     # demo.giraffe_basic(c, data, fielder, True)
 
     # ciphertext giraffe test
+    # c = parse_circuit("((0*1)+(2+3))*((4*5)+(6*7))")
     # plain_data = [encoder.slot_encode([i for _ in range(10)]) for i in range(8)]
     # start = time.perf_counter()
     # cipher_data = [encryptor.encrypt(_plain.transform_from_ntt_form()) for _plain in plain_data]
@@ -98,6 +99,7 @@ if __name__ == "__main__":
     # matrix multiplication giraffe test
     # data1 = [[i for j in range(4)] for i in range(3)]
     # data2 = [[j for j in range(2)] for i in range(4)]
-    # demo.matrix_mult(data1, data2, parms, False)
+    # demo.matrix_mult(data1, data2, parms, True)
 
-    demo.poly_func([1, 3, 5, 7, 9], [2, 1, 2, 0, 0, 0], parms, False)
+    # demo.poly_func([1, 3, 5, 7, 9], [2, 1, 2, 0, 0, 0], parms, False)
+    demo.poly_func_test()

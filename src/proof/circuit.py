@@ -148,7 +148,7 @@ class Circuit:
         for layer in self.layers:
             data_copy = layer.compute_poly(data_copy)
             ret.append(copy.deepcopy(data_copy))
-        return ret[-1][0]
+        return ret[-1]
         
     def compute_int(self, mod : int, data : list[int]) -> list[int]:
         self._modify_label_m1(data)
