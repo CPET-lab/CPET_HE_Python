@@ -581,9 +581,9 @@ class Demo:
         return encrypt_time, decrypt_time, prover_time, verifier_time, cipher_eval_time, decrypt_result
 
     def poly_func_test(self):
-        print("#####################################################")
-        print("#      Homomorphic Giraffe Test - Poly Function     #")
-        print("#####################################################\n")
+        print("####################################################")
+        print("#     Homomorphic Giraffe Test - Poly Function     #")
+        print("####################################################\n")
 
         # poly modulus, [coeff modulus, plain modulus, secret key bound, error bound]
         parameter = {
@@ -602,7 +602,7 @@ class Demo:
             param.generate_context()
             print(f"** poly_modulus {poly_modulus} **\n")
         
-            for _d in range(2, 5):
+            for _d in range(2, 7):
                 degree = 2 ** _d - 2
                 print(f"degree {degree} poly function")
                 coeff = [random.randint(0, 10) for _ in range(degree)]

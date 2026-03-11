@@ -13,7 +13,7 @@ class Decryptor:
         if not secret_key_copy.is_ntt_form():
             raise Exception("Secret key must be NTT form")
         self._secret_keys = [secret_key_copy]
-        for idx in range(1, 40):
+        for idx in range(1, 100):
             self._secret_keys.append(self._secret_keys[idx - 1] * secret_key_copy)
 
     def _recover_rns(self, rns_poly : RNS_Poly) -> Poly:
