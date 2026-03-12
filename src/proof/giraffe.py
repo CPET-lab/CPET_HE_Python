@@ -179,7 +179,7 @@ class Prover:
         for gate_idx, gate in enumerate(layer.gates):
             if round < bg:
                 rem = gate.left >> (round + 1)
-                # print(f"self.wl: {len(self.wl)}")
+                # print(f"rem: {rem}, self.wl: {len(self.wl)}")
                 termL = [self.wl[2 * rem], self.wl[2 * rem + 1]]
                 termL.append(self._eval_fm1(termL[0], termL[1]))
                 termR = [self.W_backup[gate.right] for _ in range(3)]
@@ -460,8 +460,7 @@ class Demo:
                 input_dict[_bais].append(fielder_dict[_bais].to_field_list(hashed_cipher._rns_poly[_bais]._data))
         end = time.perf_counter()
         self.log(f"input hashing time: {end - start}")
-        prover_time += end - start
-        verifier_time += end - start
+        hash_time = end - start
 
         output_dict = {}
         for _bais in param.coeff_modulus:
@@ -482,22 +481,77 @@ class Demo:
         start = time.perf_counter()
         hashed_result = [hasher.cipher_hash(e) for e in eval_result]
         end = time.perf_counter()
+        hash_time += end - start
         self.log(f"result hashing time: {end - start}")
-        # is_same = True
-        # for _bais in param.coeff_modulus:
-        #     hashed_result_field = fielder_dict[_bais].to_field_list(hashed_result._rns_poly[_bais]._data)
-        #     same = all(hashed_result_field[i] == output_dict[_bais][i] for i in range(len(output_dict[_bais])))
-        #     if not same: 
-        #         is_same = False
-        #         print(f"base {_bais} false")
-        # self.log(is_same)
+        is_same = True
+        for _bais in param.coeff_modulus:
+            hashed_result_field = fielder_dict[_bais].to_field_list(hashed_result._rns_poly[_bais]._data)
+            same = all(hashed_result_field[i] == output_dict[_bais][i] for i in range(len(output_dict[_bais])))
+            if not same: 
+                is_same = False
+                print(f"base {_bais} false")
+        self.log(is_same)
 
-        return prover_time, verifier_time, eval_result, cipher_eval_time
+        return prover_time, verifier_time, eval_result, cipher_eval_time, hash_time
+    
+    def giraffe_cipher_const(self, circuit : Circuit, cipher_input : list[Ciphertext], const_input : list[int], \
+                             param : HE_Parameter, debug=False):
+        self.debug = debug
 
-    # matrix multiplication A x B
-    # input : [column][row]
-    # A: k x n, B: n x l
-    def matrix_mult(self, matrixA : list[list[int]], matrixB : list[list[int]], param : HE_Parameter, debug = False):
+        # ciphertext -> Field list
+        hasher = HomHash_Manager(param)
+        fielder_dict = {key: Fielder(key) for key in param.coeff_modulus}
+        input_dict = {key: [] for key in param.coeff_modulus}
+        start = time.perf_counter()
+        for _cipher in cipher_input:
+            hashed_cipher = hasher.cipher_hash(_cipher)
+            for _bais in param.coeff_modulus:
+                input_dict[_bais].append(fielder_dict[_bais].to_field_list(hashed_cipher._rns_poly[_bais]._data))
+        end = time.perf_counter()
+        self.log(f"input hashing time: {end - start}")
+        hash_time = end - start
+
+        # const input
+        subAC_length = param.poly_modulus
+        for _bais, _list in input_dict.items():
+            for c in const_input:
+                _list.append(fielder_dict[_bais].to_field_list([c] * subAC_length))
+        
+        output_dict, prover_time, verifier_time = {}, 0, 0
+        for _bais in param.coeff_modulus:
+            output_dict[_bais], tp, tv = self.giraffe_basic(circuit, input_dict[_bais], fielder_dict[_bais], debug)
+            prover_time += tp
+            verifier_time += tv
+        
+        self.log(f"prover time: {prover_time}")
+        self.log(f"verifier time: {verifier_time}")
+
+        # check result
+        start = time.perf_counter()
+        eval_result = circuit.compute_poly_const(cipher_input + const_input)
+        end = time.perf_counter()
+        cipher_eval_time = end - start
+        self.log(f"circuit evaluation time: {end - start}")
+
+        start = time.perf_counter()
+        hashed_result = hasher.cipher_hash(eval_result[0])
+        end = time.perf_counter()
+        hash_time += end - start
+        self.log(f"result hashing time: {end - start}")
+
+        is_same = True
+        for _bais in param.coeff_modulus:
+            hashed_result_field = fielder_dict[_bais].to_field_list(hashed_result._rns_poly[_bais]._data)
+            same = all(hashed_result_field[i] == output_dict[_bais][i] for i in range(len(output_dict[_bais])))
+            if not same: 
+                is_same = False
+                print(f"base {_bais} false")
+        self.log(is_same)
+
+        return prover_time, verifier_time, eval_result, cipher_eval_time, hash_time
+
+    # vector x matrix multiplication
+    def vec_mat_mult(self, vec : list[int], matrix : list[list[int]], param : HE_Parameter, debug = False):
         self.debug = debug
         
         # HE setting
@@ -508,41 +562,27 @@ class Demo:
         encryptor = Encryptor(param, public_key)
         decryptor = Decryptor(param, secret_key)
 
-        # matrix A: column packing
+        # matrix encryption
         start = time.perf_counter()
-        dataA_list = []
-        for i in range(len(matrixA[0])):
-            dataA_list.append([matrixA[j][i] for j in range(len(matrixA))])
-        plainA_list = [encoder.slot_encode(data) for data in dataA_list]
-        cipherA_list = [encryptor.encrypt(plain.transform_from_ntt_form()) for plain in plainA_list]  # k ciphertext
-
-        # matrix B: row packing
-        plainB_list = [encoder.slot_encode(data) for data in matrixB]
-        cipherB_list = [encryptor.encrypt(plain.transform_from_ntt_form()) for plain in plainB_list]  # l ciphertext
+        plain_list = [encoder.slot_encode(m) for m in matrix]
+        cipher_list = [encryptor.encrypt(plain.transform_from_ntt_form()) for plain in plain_list]
         end = time.perf_counter()
         encrypt_time = end - start
 
         # circuit setting
-        circuit_list = []
-        for i in range(len(cipherA_list)):
-            for j in range(len(cipherA_list), len(cipherA_list) + len(cipherB_list)):
-                circuit_list.append(f"({i}*{j})+")
-        print(len(cipherA_list), len(cipherB_list), len(circuit_list))
-        circuit_list[-1] = circuit_list[-1][:-1]
-        circuit_str = "".join(circuit_list)
-        self.log(circuit_str)
-        c = parse_circuit(circuit_str)
+        c = build_dot_product_circuit(len(vec))
         self.log(c.toString())
-        input_cipher = cipherA_list + cipherB_list
+        # print(c.toString())
 
-        prover_time, verifier_time, encrypted_result, cipher_eval_time = self.giraffe_cipher(c, input_cipher, param, debug)
+        prover_time, verifier_time, encrypted_result, cipher_eval_time, hash_time \
+            = self.giraffe_cipher_const(c, cipher_list, vec, param, debug)
 
         start = time.perf_counter()
-        decrypt_result = [decryptor.decrypt(e).transform_to_ntt_form() for e in encrypted_result]
+        decrypt_result = decryptor.decrypt(encrypted_result[0]).transform_to_ntt_form()
         end = time.perf_counter()
         decrypt_time = end - start
 
-        return encrypt_time, decrypt_time, prover_time, verifier_time, cipher_eval_time, decrypt_result
+        return encrypt_time, decrypt_time, prover_time, verifier_time, cipher_eval_time, hash_time, decrypt_result
 
     # coeff : [x^0, x^1, ...]
     def poly_func(self, data : list[int], coeff : list[int], param : HE_Parameter, debug = False):
@@ -558,6 +598,7 @@ class Demo:
 
         # circuit setting
         circuit = build_poly_circuit(coeff)
+        self.log(circuit.toString())
         # print(circuit.toString())
 
         # len(input_cipher) must be power of 2
@@ -570,7 +611,7 @@ class Demo:
         end = time.perf_counter()
         encrypt_time = end - start
         
-        prover_time, verifier_time, encrypted_result, cipher_eval_time = \
+        prover_time, verifier_time, encrypted_result, cipher_eval_time, hash_time = \
             self.giraffe_cipher(circuit, input_cipher, param, debug)
 
         start = time.perf_counter()
@@ -578,7 +619,7 @@ class Demo:
         end = time.perf_counter()
         decrypt_time = end - start
 
-        return encrypt_time, decrypt_time, prover_time, verifier_time, cipher_eval_time, decrypt_result
+        return encrypt_time, decrypt_time, prover_time, verifier_time, cipher_eval_time, hash_time, decrypt_result
 
     def poly_func_test(self):
         print("####################################################")
@@ -587,11 +628,15 @@ class Demo:
 
         # poly modulus, [coeff modulus, plain modulus, secret key bound, error bound]
         parameter = {
-            13: ([30, 30, 40], 18, 1, 2),
-            14: ([30, 30, 40], 18, 1, 2),
-            15: ([30, 30, 40], 20, 1, 2),
-            16: ([30, 30, 40], 20, 1, 2),
+            12: ([50, 50], 18, 1, 2),
+            13: ([50, 50], 18, 1, 2),
+            14: ([50, 50], 18, 1, 2),
+            15: ([50, 50], 20, 1, 2),
+            16: ([50, 50], 20, 1, 2),
         }
+        # parameter = {
+        #     13: ([30, 30, 40], 18, 1, 2)
+        # }
         for poly_modulus in parameter:
             coeff_modulus, plain_modulus, sbound, ebound = parameter[poly_modulus]
             param = HE_Parameter("bv") \
@@ -600,14 +645,14 @@ class Demo:
                     .set_plain_modulus(plain_modulus) \
                     .set_bound(sbound, ebound)
             param.generate_context()
-            print(f"** poly_modulus {poly_modulus} **\n")
+            print(f"\n\n** poly_modulus {poly_modulus} **")
         
             for _d in range(2, 7):
                 degree = 2 ** _d - 2
-                print(f"degree {degree} poly function")
+                print(f"degree {degree - 1} poly function")
                 coeff = [random.randint(0, 10) for _ in range(degree)]
                 print(f"  - coeff: {coeff[:min(10, degree)]}{"..." if degree > 10 else ""}")
-                data = [random.randint(0, 10) for _ in range(poly_modulus)]
+                data = [random.randint(0, 10) for _ in range(2 ** poly_modulus)]
                 print(f"  - data:  {data[:10]}...")
 
                 # plain eval
@@ -616,7 +661,7 @@ class Demo:
                 end = time.perf_counter()
                 plain_eval_time = end - start
 
-                encrypt_time, decrypt_time, prover_time, verifier_time, cipher_eval_time, decrypt_result\
+                encrypt_time, decrypt_time, prover_time, verifier_time, cipher_eval_time, hash_time, decrypt_result\
                     = self.poly_func(copy.deepcopy(data), copy.deepcopy(coeff), param, False)
 
                 print(f"    - result:")
@@ -624,24 +669,23 @@ class Demo:
                 print(f"    - decrypt time:  {decrypt_time}")
                 print(f"    - prover time:   {prover_time}")
                 print(f"    - verifier time: {verifier_time}")
+                print(f"    - hash time:     {hash_time}")
                 print(f"    - cipher time:   {cipher_eval_time}")
                 print(f"    - plain time:    {plain_eval_time}")
+                print("\n")
 
-                
-
-
-
-    def matrix_mult_test(self):
-        print("###################################################")
-        print("#      Homomorphic Giraffe Test - Matirx Mult     #")
-        print("###################################################\n")
+    def vec_mat_mult_test(self):
+        print("####################################################")
+        print("#    Homomorphic Giraffe Test - Vector x Matrix    #")
+        print("####################################################\n")
 
         # poly modulus, [coeff modulus, plain modulus, secret key bound, error bound]
         parameter = {
-            13: ([30, 30, 40], 18, 1, 2),
-            14: ([30, 30, 40], 18, 1, 2),
-            15: ([30, 30, 40], 20, 1, 2),
-            16: ([30, 30, 40], 20, 1, 2),
+            12: ([50, 50], 18, 1, 2),
+            13: ([50, 50], 18, 1, 2),
+            14: ([50, 50], 18, 1, 2),
+            15: ([50, 50], 20, 1, 2),
+            16: ([50, 50], 20, 1, 2),
         }
         for poly_modulus in parameter:
             coeff_modulus, plain_modulus, sbound, ebound = parameter[poly_modulus]
@@ -651,49 +695,39 @@ class Demo:
                     .set_plain_modulus(plain_modulus) \
                     .set_bound(sbound, ebound)
             param.generate_context()
-            print(f"\n\n** poly_modulus {poly_modulus} **\n")
+            print(f"\n\n** poly_modulus {poly_modulus} **")
 
-            # for k in range(100, 1000, 100):
-            #     for l in range(100, 1000, 100):
-            #         for n in [1, 2, 4, 8, 16, 32, 64]:
-            for k in [2]:
-                for l in [2]:
-                    for n in [4]:
-                        print(f"case ({k} x {n}) x ({n} x {l})")
-                        matrixA = [[random.randint(1, 10) for _ in range(n)] for _ in range(k)]
-                        matrixB = [[random.randint(1, 10) for _ in range(l)] for _ in range(n)]
-                        encrypt_time, decrypt_time, prover_time, verifier_time, cipher_eval_time, decrypt_result\
-                            = self.matrix_mult(copy.deepcopy(matrixA), copy.deepcopy(matrixB), param, False)
-                        
-                        # plain eval
-                        start = time.perf_counter()
-                        matrixB_trans = list(zip(*matrixB))
-                        result = [[sum(a * b for a, b in zip(row_a, col_b)) for col_b in matrixB_trans] for row_a in matrixA]
-                        end = time.perf_counter()
-                        plain_eval_time = end - start
-
-                        print("result")
-                        for a in matrixA:
-                            print(a)
-                        for b in matrixB:
-                            print(b)
-                        for r in result:
-                            print(r)
-                        # print("\n\n")
-                        # for r in decrypt_result._data[:len(result[0])]:
-                        #     print(r)
-                        print(len(result), len(result[0]))
-                        for idx, dr in enumerate(decrypt_result):
-                            print(dr._data[:len(result[0])])
-                            # if not dr._data[:len(result[0])] == result[idx]:
-                                # raise Exception("result is different")
-                        
-                        print(f"    - result:")
-                        print(f"    - encrypt time:  {encrypt_time}")
-                        print(f"    - decrypt time:  {decrypt_time}")
-                        print(f"    - prover time:   {prover_time}")
-                        print(f"    - verifier time: {verifier_time}")
-                        print(f"    - cipher time:   {cipher_eval_time}")
-                        print(f"    - plain time:    {plain_eval_time}")
-                    
-                    raise Exception("asdf")
+            for _k in range(3, 10):
+                k = 2 ** _k
+                print(f"{k} x ({k} x 2^{poly_modulus})")
+                vec = [random.randint(0, 10) for _ in range(k)]
+                mat = [[random.randint(0, 10) for _ in range(2 ** poly_modulus)] for _ in range(k)]
+                print(f"vec: {vec[:10]}...")
+                print(f"mat:")
+                for m in mat[:10]:
+                    print(f"{m[:10]}...")
+                print("...")
+                
+                encrypt_time, decrypt_time, prover_time, verifier_time, cipher_eval_time, hash_time, decrypt_result\
+                    = self.vec_mat_mult(vec, mat, param, False)
+                
+                # plain eval
+                start = time.perf_counter()
+                result = []
+                for j in range(k):
+                    column_sum = 0
+                    for i in range(k):
+                        column_sum += vec[i] * mat[i][j]
+                        result.append(column_sum)
+                end = time.perf_counter()
+                plain_eval_time = end - start
+                
+                print(f"    - result:")
+                print(f"    - encrypt time:  {encrypt_time}")
+                print(f"    - decrypt time:  {decrypt_time}")
+                print(f"    - prover time:   {prover_time}")
+                print(f"    - verifier time: {verifier_time}")
+                print(f"    - hash time:     {hash_time}")
+                print(f"    - cipher time:   {cipher_eval_time}")
+                print(f"    - plain time:    {plain_eval_time}")
+                print("\n")

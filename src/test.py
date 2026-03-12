@@ -103,3 +103,5 @@ if __name__ == "__main__":
 
     # demo.poly_func([1, 3, 5, 7, 9], [2, 1, 2, 0, 0, 0], parms, False)
     demo.poly_func_test()
+    print("\n\n\n\n ************************************************** \n\n\n\n")
+    demo.vec_mat_mult_test()

@@ -207,6 +207,18 @@ class Poly:
         ret.mul_scalar_inplace(scalar)
         return ret
     
+    def add_scalar_inplace(self, scalar : int):
+        if self.is_ntt_form() == True:
+            for i in range(len(self._data)):
+                self._data[i] = _modulus._centered_modulus(self._data[i] + scalar, self._coeff_modulus)
+        else:
+            self._data[0] = _modulus._centered_modulus(self._data[0] + scalar, self._coeff_modulus)
+        return self
+    
+    def add_scalar(self, scalar : int):
+        ret = self.copy()
+        return ret.add_scalar_inplace(scalar)
+    
     def equal(self, other : Self) -> bool:
         if self.is_ntt_form() != other.is_ntt_form():
             raise Exception(f"polynomial form is not match {self.is_ntt_form()} {other.is_ntt_form()}")

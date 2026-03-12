@@ -173,6 +173,15 @@ class RNS_Poly:
         ret.mul_scalar_inplace(scalar)
         return self
     
+    def add_scalar_inplace(self, scalar : int):
+        for _, poly in self._rns_poly.items():
+            poly.add_scalar_inplace(scalar)
+        return self
+    
+    def add_scalar(self, scalar : int):
+        ret = self.copy()
+        return ret.add_scalar_inplace(scalar)
+    
     def equal(self, other : Self) -> bool:
         if self.is_ntt_form() != other.is_ntt_form():
             raise Exception(f"polynomial form is not match {self.is_ntt_form()} {other.is_ntt_form()}")

@@ -44,6 +44,24 @@ class Gate:
             return data[self.left] + data[self.right]
         elif self.op == OpType.MULT:
             return data[self.left] * data[self.right]
+    
+    def compute_poly_const(self, data : list):
+        if len(data) < self.right:
+            raise Exception("data list is to small")
+        if type(data[self.left]) == type(data[self.right]):
+            if isinstance(data[self.left], Field):
+                return self.compute_field(data)
+            else:
+                return self.compute_poly(data)
+        else:
+            if isinstance(data[self.left], int):
+                poly_idx, const_idx = self.right, self.left
+            else:
+                poly_idx, const_idx = self.left, self.right
+        if self.op == OpType.ADD:
+            return data[poly_idx].add_scalar(data[const_idx])
+        elif self.op == OpType.MULT:
+            return data[poly_idx].mul_scalar(data[const_idx])
         
     def compute_int(self, mod : int, data : list[int]) -> int:
         if len(data) < self.right:
@@ -81,14 +99,6 @@ class Layer:
             self.max_idx *= 2
         while len(self.gates) < self.max_idx:
             self.gates.append(Gate(OpType.ADD, -1, -1))
-
-    # def __init__(self, gates : list[Gate]):
-    #     self.gates = gates
-    #     self.max_idx = 1
-    #     while self.max_idx < len(gates) + 1:
-    #         self.max_idx *= 2
-    #     while len(self.gates) < self.max_idx:
-    #         self.gates.append(Gate(OpType.ADD, -1, -1))
         
     def toString(self):
         ret = ""
@@ -97,21 +107,27 @@ class Layer:
         return ret
     
     def compute_poly(self, data : list) -> list:
-        data.append(data[0] - data[0])  # zero poly
+        # data.append(data[0] - data[0])  # zero poly
         ret = []
         for gate in self.gates:
             ret.append(gate.compute_poly(data))
         return ret
     
+    def compute_poly_const(self, data : list) -> list:
+        ret = []
+        for gate in self.gates:
+            ret.append(gate.compute_poly_const(data))
+        return ret
+    
     def compute_int(self, mod : int, data : list[int]) -> list[int]:
-        data.append(0)
+        # data.append(0)
         ret = []
         for gate in self.gates:
             ret.append(gate.compute_int(mod, data))
         return ret
 
     def compute_field(self, data : list[Field]) -> list[Field]:
-        data.append(data[0] - data[0])
+        # data.append(data[0] - data[0])
         ret = []
         for gate in self.gates:
             ret.append(gate.compute_field(data))
@@ -149,6 +165,14 @@ class Circuit:
             data_copy = layer.compute_poly(data_copy)
             ret.append(copy.deepcopy(data_copy))
         return ret[-1]
+    
+    # data : list of poly and field
+    def compute_poly_const(self, data : list):
+        self._modify_label_m1(data)
+        data_copy = copy.deepcopy(data)
+        for layer in self.layers:
+            data_copy = layer.compute_poly_const(data_copy)
+        return data_copy
         
     def compute_int(self, mod : int, data : list[int]) -> list[int]:
         self._modify_label_m1(data)
@@ -194,172 +218,7 @@ class Circuit:
                     gate.right = self.layer(layer_idx - 1).length() - 1
 
 
-# # str : '(', ')', '+', '*', input index (0 ~ i)
-# # ex) "0*1+(2+3*4)+5*6"
-# def parse_circuit(expression: str) -> Circuit:
-    
-#     # 내부용 DAG 노드 클래스
-#     class DagNode:
-#         def __init__(self, node_type, value=None, left=None, right=None):
-#             self.type = node_type  # 'INPUT', 'OP'
-#             self.value = value     # 'ADD', 'MULT' or Input Index (int)
-#             self.left = left       # Left Child Node
-#             self.right = right     # Right Child Node
-#             self.depth = 0         # Computation Depth
-#             self.id = id(self)     # Unique ID for tracking
-            
-#         def __repr__(self):
-#             return f"Node({self.type}, {self.value}, d={self.depth})"
 
-#     # 1. Tokenize (제공해주신 로직 그대로 사용)
-#     def tokenize_expression(text):
-#         operators = "()+*"
-#         for op in operators:
-#             text = text.replace(op, f" {op} ")
-#         tokens = text.split()
-#         result = []
-#         for token in tokens:
-#             if token.isdigit():
-#                 result.append(int(token))
-#             else:
-#                 result.append(token)
-#         return result
-
-#     tokens = tokenize_expression(expression)
-
-#     # 2. Shunting-yard Algorithm (Infix -> Postfix)
-#     precedence = {'+': 1, '*': 2, '(': 0}
-#     output_queue = deque()
-#     operator_stack = []
-
-#     for token in tokens:
-#         if isinstance(token, int):  # Operand (Input Index)
-#             output_queue.append(DagNode('INPUT', value=token))
-#         elif token == '(':
-#             operator_stack.append(token)
-#         elif token == ')':
-#             while operator_stack and operator_stack[-1] != '(':
-#                 output_queue.append(operator_stack.pop())
-#             operator_stack.pop()  # Pop '('
-#         else:  # Operators + or *
-#             while (operator_stack and operator_stack[-1] != '(' and
-#                    precedence.get(operator_stack[-1], 0) >= precedence[token]):
-#                 output_queue.append(operator_stack.pop())
-#             operator_stack.append(token)
-    
-#     while operator_stack:
-#         output_queue.append(operator_stack.pop())
-
-#     # 3. Build DAG (Calculate Depth)
-#     evaluation_stack = []
-#     all_nodes = [] # To keep track of all nodes for usage analysis
-
-#     # 입력 문자열에 등장하는 최대 인덱스를 찾아 초기 입력 크기 결정
-#     max_input_idx = 0
-#     for token in tokens:
-#         if isinstance(token, int):
-#             max_input_idx = max(max_input_idx, token)
-    
-#     # 초기 입력 노드들 미리 생성 (입력 인덱스 0 ~ max_input_idx)
-#     input_nodes = [DagNode('INPUT', value=i) for i in range(max_input_idx + 1)]
-#     all_nodes.extend(input_nodes)
-
-#     for item in output_queue:
-#         if isinstance(item, DagNode): # It's an input operand from queue
-#             # 큐에 있는건 껍데기일 수 있으므로 실제 관리하는 input_nodes에서 가져옴
-#             evaluation_stack.append(input_nodes[item.value])
-#         else: # Operator string
-#             right_node = evaluation_stack.pop()
-#             left_node = evaluation_stack.pop()
-            
-#             new_node = DagNode('OP', value=(OpType.ADD if item == '+' else OpType.MULT), left=left_node, right=right_node)
-#             new_node.depth = max(left_node.depth, right_node.depth) + 1
-            
-#             evaluation_stack.append(new_node)
-#             all_nodes.append(new_node)
-
-#     final_output_node = evaluation_stack.pop()
-#     max_circuit_depth = final_output_node.depth
-
-#     # 4. DAG -> Leveled Circuit Construction
-    
-#     # 어떤 노드가 몇 깊이 이상의 노드에서 사용되는지(부모가 누군지) 파악
-#     # (Passthrough가 필요한지 판단하기 위함)
-#     node_usage_max_depth = {node.id: 0 for node in all_nodes}
-    
-#     def mark_usage(node, user_depth):
-#         if node is None: return
-#         node_usage_max_depth[node.id] = max(node_usage_max_depth[node.id], user_depth)
-#         # 재귀적으로 내려갈 필요 없음, 상향식 구성 시 부모가 자식을 참조하므로 
-#         # 자식 입장에서 자신의 부모 중 가장 깊은 depth를 알면 됨.
-#         # DAG 구성 시 부모->자식 링크만 있으므로, 
-#         # 전체 노드를 순회하며 자신의 자식들에게 내 depth를 알려주는 방식이 효율적.
-
-#     for node in all_nodes:
-#         if node.type == 'OP':
-#             mark_usage(node.left, node.depth)
-#             mark_usage(node.right, node.depth)
-            
-#     # 최종 결과 노드는 회로의 끝까지 살아남아야 함
-#     mark_usage(final_output_node, max_circuit_depth)
-
-#     layers = []
-    
-#     # 현재 레이어(이전 레이어의 출력)에 존재하는 노드들과 그 인덱스 매핑
-#     # 초기 상태: 입력 데이터들
-#     current_nodes = input_nodes 
-#     # current_nodes 리스트의 i번째 원소가 실제 데이터 리스트의 i번째 값에 해당함
-
-#     for d in range(1, max_circuit_depth + 1):
-#         gates = []
-#         next_nodes = []
-        
-#         # 현재 처리해야 할 노드(Depth == d)와 전달해야 할 노드(Depth < d, but used later) 식별
-        
-#         # 1. 계산 게이트 생성 (Depth가 현재 d인 노드들)
-#         # 이 노드들은 반드시 current_nodes(이전 레이어 출력)에 자식들이 존재함
-#         nodes_at_depth = [n for n in all_nodes if n.depth == d]
-        
-#         # 2. 패스스루 게이트 생성 (Depth < d 이지만, 미래(depth > d)에 사용되는 노드들)
-#         # 이 노드들은 현재 current_nodes에 존재해야 함
-#         pass_nodes = []
-#         for n in current_nodes:
-#             # 내 depth는 이미 d보다 작음. 
-#             # 내가 사용되는 최대 깊이가 d보다 크다면 다음 레이어로 넘겨야 함
-#             if node_usage_max_depth[n.id] > d:
-#                 pass_nodes.append(n)
-#             # 만약 내가 최종 결과 노드이고 현재 depth에 도달하지 못했다면 넘겨야 함 (예: 입력이 바로 출력인 경우 등)
-#             elif n == final_output_node and d < max_circuit_depth:
-#                  pass_nodes.append(n)
-
-#         # 게이트 구성 및 다음 레이어 노드 리스트 작성
-        
-#         # 1) 연산 게이트 추가
-#         for node in nodes_at_depth:
-#             # current_nodes에서 자식 노드의 인덱스를 찾음
-#             try:
-#                 l_idx = current_nodes.index(node.left)
-#                 r_idx = current_nodes.index(node.right)
-#                 gates.append(Gate(node.value, l_idx, r_idx))
-#                 next_nodes.append(node)
-#             except ValueError:
-#                 raise Exception(f"Circuit construction failed: Dependencies for node {node} not found in layer {d-1}")
-
-#         # 2) 패스스루(Identity) 게이트 추가
-#         # Gate(ADD, idx, -1) -> data[idx] + 0 (값 복사)
-#         for node in pass_nodes:
-#             idx = current_nodes.index(node)
-#             gates.append(Gate(OpType.ADD, idx, -1))
-#             next_nodes.append(node)
-
-#         layers.append(Layer(gates))
-#         current_nodes = next_nodes
-
-#     return Circuit(layers)
-
-import heapq
-import itertools
-from collections import deque
 
 # str : '(', ')', '+', '*', input index (0 ~ i)
 # ex) "0*1+(2+3*4)+5*6"
@@ -721,6 +580,134 @@ def build_poly_circuit(coeffs: list) -> Circuit:
             
             for _ in range(padding_needed):
                 gates.append(Gate(OpType.ADD, zero_idx, -1))
+                
+                dummy_node = DagNode('DUMMY', value='PAD')
+                node_usage_max_depth[dummy_node.id] = 0 
+                next_nodes.append(dummy_node)
+
+        layers.append(Layer(gates))
+        current_nodes = next_nodes
+
+    return Circuit(layers)
+
+
+def build_dot_product_circuit(n: int) -> Circuit:
+    """
+    2n개의 입력 데이터에 대해 sum(D[i] * D[n+i])를 계산하는 회로를 생성합니다.
+    - 입력 데이터 크기: 2n (인덱스 0 ~ 2n-1)
+    """
+    class DagNode:
+        def __init__(self, node_type, value=None, left=None, right=None):
+            self.type = node_type  # 'INPUT', 'OP', 'DUMMY'
+            self.value = value     # '+', '*' 또는 입력 인덱스
+            self.left = left       
+            self.right = right     
+            self.depth = 0         
+            self.id = id(self)     
+            
+        def __repr__(self):
+            return f"Node({self.type}, {self.value}, d={self.depth})"
+
+    # =========================================================================
+    # 1. 초기 입력 노드 생성 (0 ~ 2n-1)
+    # =========================================================================
+    input_nodes = [DagNode('INPUT', value=i) for i in range(2 * n)]
+    all_nodes = list(input_nodes)
+
+    # =========================================================================
+    # 2. 병렬 곱셈 레이어 (Depth = 1)
+    # D[i] * D[n+i] 연산을 수행하는 n개의 곱셈 노드를 생성합니다.
+    # =========================================================================
+    mult_nodes = []
+    for i in range(n):
+        left_node = input_nodes[i]
+        right_node = input_nodes[n + i]
+        
+        mult_node = DagNode('OP', value='*', left=left_node, right=right_node)
+        mult_node.depth = 1
+        mult_nodes.append(mult_node)
+        all_nodes.append(mult_node)
+
+    # =========================================================================
+    # 3. 덧셈 트리 구성 (Min-Heap 밸런싱)
+    # n개의 곱셈 결과를 이진 트리 형태로 더해 Depth를 최소화합니다.
+    # =========================================================================
+    if not mult_nodes:
+        raise ValueError("n은 1 이상이어야 합니다.")
+        
+    counter = itertools.count()
+    pq = []
+    for m in mult_nodes:
+        heapq.heappush(pq, (m.depth, next(counter), m))
+        
+    while len(pq) > 1:
+        d1, _, left_n = heapq.heappop(pq)
+        d2, _, right_n = heapq.heappop(pq)
+        
+        add_node = DagNode('OP', value='+', left=left_n, right=right_n)
+        add_node.depth = max(left_n.depth, right_n.depth) + 1
+        all_nodes.append(add_node)
+        heapq.heappush(pq, (add_node.depth, next(counter), add_node))
+        
+    _, _, final_output_node = heapq.heappop(pq)
+    max_circuit_depth = final_output_node.depth
+
+    # =========================================================================
+    # 4. DAG -> Leveled Circuit 변환 (패스스루 및 2의 거듭제곱 패딩 포함)
+    # =========================================================================
+    node_usage_max_depth = {node.id: 0 for node in all_nodes}
+    
+    def mark_usage(node, user_depth):
+        if node is None: return
+        node_usage_max_depth[node.id] = max(node_usage_max_depth[node.id], user_depth)
+
+    for node in all_nodes:
+        if node.type == 'OP':
+            mark_usage(node.left, node.depth)
+            mark_usage(node.right, node.depth)
+            
+    mark_usage(final_output_node, max_circuit_depth)
+
+    layers = []
+    current_nodes = list(input_nodes) 
+
+    for d in range(1, max_circuit_depth + 1):
+        gates = []
+        next_nodes = []
+        
+        nodes_at_depth = [n for n in all_nodes if n.type == 'OP' and n.depth == d]
+        
+        pass_nodes = []
+        for n in current_nodes:
+            if node_usage_max_depth[n.id] > d:
+                pass_nodes.append(n)
+            elif n == final_output_node and d < max_circuit_depth:
+                pass_nodes.append(n)
+
+        # 1) 연산 게이트 추가
+        for node in nodes_at_depth:
+            l_idx = current_nodes.index(node.left)
+            r_idx = current_nodes.index(node.right)
+            op_type = OpType.ADD if node.value == '+' else OpType.MULT
+            gates.append(Gate(op_type, l_idx, r_idx))
+            next_nodes.append(node)
+
+        # 2) 패스스루 게이트 추가
+        for node in pass_nodes:
+            idx = current_nodes.index(node)
+            gates.append(Gate(OpType.ADD, idx, -1))
+            next_nodes.append(node)
+
+        # 3) 2의 거듭제곱 패딩 (Padding)
+        current_gate_count = len(gates)
+        if current_gate_count > 0:
+            target_gate_count = 1 << (current_gate_count - 1).bit_length()
+            padding_needed = target_gate_count - current_gate_count
+            
+            for _ in range(padding_needed):
+                # 이 회로에서는 0번 인덱스(항상 존재함)를 안전한 더미 타겟으로 사용합니다.
+                # (D[0] + 0 연산을 수행하지만 결과는 다음 층에서 버려짐)
+                gates.append(Gate(OpType.ADD, 0, -1))
                 
                 dummy_node = DagNode('DUMMY', value='PAD')
                 node_usage_max_depth[dummy_node.id] = 0 

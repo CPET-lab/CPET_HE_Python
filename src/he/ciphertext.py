@@ -198,3 +198,20 @@ class Ciphertext:
             ret += f"Poly {idx}\n"
             ret += poly.toString(length, print_zero)
         return ret
+    
+    def add_scalar_inplace(self, scalar : int):
+        self._data[0].add_scalar_inplace(scalar)
+        return self
+    
+    def add_scalar(self, scalar : int):
+        ret = self.copy()
+        return ret.add_scalar_inplace(scalar)
+
+    def mul_scalar_inplace(self, scalar : int):
+        for _rns_poly in self._data:
+            _rns_poly.mul_scalar_inplace(scalar)
+        return self
+    
+    def mul_scalar(self, scalar : int):
+        ret = self.copy()
+        return ret.mul_scalar_inplace(scalar)
