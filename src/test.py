@@ -12,17 +12,17 @@ import time
 
 if __name__ == "__main__":
 
-    parms = HE_Parameter("bv").set_poly_modulus(13).set_coeff_modulus([30, 30, 40]).set_plain_modulus(18).set_bound(1, 2)
-    parms.generate_context()
-    print(parms.toString())
+    # parms = HE_Parameter("bv").set_poly_modulus(13).set_coeff_modulus([30, 30, 40]).set_plain_modulus(18).set_bound(1, 2)
+    # parms.generate_context()
+    # print(parms.toString())
 
-    encoder = Encoder(parms)
-    keygen = Key_Generator(parms)
-    secret_key = keygen.generate_secret_key()
-    public_key = keygen.generate_public_key(secret_key)
+    # encoder = Encoder(parms)
+    # keygen = Key_Generator(parms)
+    # secret_key = keygen.generate_secret_key()
+    # public_key = keygen.generate_public_key(secret_key)
 
-    encryptor = Encryptor(parms, public_key)
-    decryptor = Decryptor(parms, secret_key)
+    # encryptor = Encryptor(parms, public_key)
+    # decryptor = Decryptor(parms, secret_key)
 
 
     #############################################
@@ -100,8 +100,7 @@ if __name__ == "__main__":
     # data1 = [[i for j in range(4)] for i in range(3)]
     # data2 = [[j for j in range(2)] for i in range(4)]
     # demo.matrix_mult(data1, data2, parms, True)
-
-    # demo.poly_func([1, 3, 5, 7, 9], [2, 1, 2, 0, 0, 0], parms, False)
-    demo.poly_func_test()
-    print("\n\n\n\n ************************************************** \n\n\n\n")
+    
+    # demo.poly_func_test()
+    # print("\n\n\n\n ************************************************** \n\n\n\n")
     demo.vec_mat_mult_test()

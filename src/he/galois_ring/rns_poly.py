@@ -69,6 +69,16 @@ class RNS_Poly:
                 else:
                     self._rns_poly[rns_base]._data[idx] = _modulus._centered_modulus(coeff, rns_base)
         return self
+    
+    def _eval_centered_mod(self):
+        ntt_flag = False
+        if self.is_ntt_form():
+            ntt_flag = True
+            self.transform_from_ntt_form()
+        for _, _poly in self._rns_poly.items():
+            _poly.centered_mod()
+        if ntt_flag:
+            self.transform_to_ntt_form()
 
     def _set_ntt_engine(self, prime : int, ntt_engines : _NTT_Engine):
         if prime not in self._rns_base:

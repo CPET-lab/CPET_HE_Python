@@ -28,14 +28,14 @@ class HomHash_Manager:
     def cipher_hash(self, cipher : Ciphertext) -> RNS_Poly:
         r_poly = self.r_poly
         ret = cipher._data[-1].copy()
-        r_pow = r_poly.copy()
+        r_pow = r_poly._data[0]
         if not cipher.is_ntt_form():
             cipher.transform_to_ntt_form()
-        if not r_pow.is_ntt_form():
-            r_pow.transform_to_ntt_form()
+        # if not r_pow.is_ntt_form():
+        #     r_pow.transform_to_ntt_form()
         for rns_poly in reversed(cipher._data[:-1]):
             rns_poly_copy = rns_poly.copy()
-            rns_poly_copy.mul_poly_inplace(r_pow)
+            rns_poly_copy.mul_scalar_inplace(r_pow)
             ret += rns_poly_copy
             r_pow *= r_pow
         return ret

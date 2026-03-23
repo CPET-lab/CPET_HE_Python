@@ -1,0 +1,192 @@
+nohup: ignoring input
+####################################################
+#    Homomorphic Giraffe Test - Vector x Matrix    #
+####################################################
+
+
+test 13, [60], 22, 2
+    - encrypt time:  0.11320730089209974
+    - decrypt time:  0.054034444969147444
+    - prover time:   0.8119171345606446
+    - verifier time: 0.020883442368358374
+    - hash time:     0.045151305850595236
+    - cipher time:   0.05112628499045968
+    - plain time:    0.0012201929930597544
+
+
+
+test 13, [30, 40], 23, 4
+    - encrypt time:  0.3442255388945341
+    - decrypt time:  0.07445182581432164
+    - prover time:   3.3651144369505346
+    - verifier time: 0.037632834166288376
+    - hash time:     0.14947435283102095
+    - cipher time:   0.17414762708358467
+    - plain time:    0.0019311760552227497
+
+
+
+test 13, [30, 40], 24, 8
+    - encrypt time:  0.6991696709301323
+    - decrypt time:  0.07432350004091859
+    - prover time:   7.127781048417091
+    - verifier time: 0.04005194269120693
+    - hash time:     0.25386061193421483
+    - cipher time:   0.3450071569532156
+    - plain time:    0.003129518125206232
+
+
+
+test 13, [30, 40], 25, 16
+    - encrypt time:  1.4186975320335478
+    - decrypt time:  0.07377477502450347
+    - prover time:   14.58892237325199
+    - verifier time: 0.041629159823060036
+    - hash time:     0.5405308781191707
+    - cipher time:   0.6943289451301098
+    - plain time:    0.005562430014833808
+
+
+
+test 13, [40, 40], 26, 32
+    - encrypt time:  3.2398109228815883
+    - decrypt time:  0.08176864893175662
+    - prover time:   30.795145337935537
+    - verifier time: 0.04743480449542403
+    - hash time:     1.1910904389806092
+    - cipher time:   1.4161944859661162
+    - plain time:    0.010594077873975039
+
+
+
+test 13, [40, 40], 27, 64
+    - encrypt time:  6.452700711088255
+    - decrypt time:  0.08113049599342048
+    - prover time:   62.09783056215383
+    - verifier time: 0.04998310003429651
+    - hash time:     2.463188401190564
+    - cipher time:   2.85668422607705
+    - plain time:    0.02063156897202134
+
+
+
+test 13, [40, 40], 28, 128
+    - encrypt time:  13.103025895077735
+    - decrypt time:  0.08216113899834454
+    - prover time:   123.66428545722738
+    - verifier time: 0.05547811184078455
+    - hash time:     4.895865854108706
+    - cipher time:   5.737616636091843
+    - plain time:    0.04114607395604253
+
+
+
+test 15, [40, 50], 30, 2
+    - encrypt time:  0.9098471829202026
+    - decrypt time:  0.3695347998291254
+    - prover time:   6.688170013017952
+    - verifier time: 0.1724332137964666
+    - hash time:     0.44554800796322525
+    - cipher time:   0.36189175117760897
+    - plain time:    0.005011353874579072
+
+
+
+test 15, [40, 50], 30, 4
+    - encrypt time:  1.8233954510651529
+    - decrypt time:  0.3673521720338613
+    - prover time:   14.772914437344298
+    - verifier time: 0.17379207466728985
+    - hash time:     0.909912021830678
+    - cipher time:   0.7225644839927554
+    - plain time:    0.007554612122476101
+
+
+
+test 15, [40, 50], 30, 8
+    - encrypt time:  3.6835588067770004
+    - decrypt time:  0.364609814947471
+    - prover time:   31.174074739217758
+    - verifier time: 0.18466595956124365
+    - hash time:     1.4382518010679632
+    - cipher time:   1.4536806780379266
+    - plain time:    0.013105953112244606
+
+
+
+test 15, [40, 50], 30, 16
+    - encrypt time:  7.477937824092805
+    - decrypt time:  0.3710515589918941
+    - prover time:   63.818817308638245
+    - verifier time: 0.18653503572568297
+    - hash time:     2.863419061060995
+    - cipher time:   2.89457527291961
+    - plain time:    0.02226322703063488
+
+
+
+test 15, [40, 50], 30, 32
+    - encrypt time:  15.02644780301489
+    - decrypt time:  0.3670014201197773
+    - prover time:   129.02682614000514
+    - verifier time: 0.19687402597628534
+    - hash time:     4.955122757004574
+    - cipher time:   5.79937555314973
+    - plain time:    0.04507877700962126
+
+
+
+test 15, [40, 50], 30, 64
+    - encrypt time:  29.65015491982922
+    - decrypt time:  0.3649628129787743
+    - prover time:   256.6912467596121
+    - verifier time: 0.20327097503468394
+    - hash time:     11.21408557984978
+    - cipher time:   11.580273311119527
+    - plain time:    0.08366550202481449
+
+
+
+test 15, [40, 50], 30, 128
+    - encrypt time:  59.47889320901595
+    - decrypt time:  0.36124055716209114
+    - prover time:   513.648689030204
+    - verifier time: 0.21726927300915122
+    - hash time:     18.03889734321274
+    - cipher time:   23.186513391090557
+    - plain time:    0.16493547917343676
+
+
+
+test 14, [40, 40], 26, 4
+    - encrypt time:  0.8467926741577685
+    - decrypt time:  0.17366346810013056
+    - prover time:   6.819878074573353
+    - verifier time: 0.08441486558876932
+    - hash time:     0.3060592580586672
+    - cipher time:   0.3553840972017497
+    - plain time:    0.004152318928390741
+
+
+
+test 14, [40, 50], 28, 4
+    - encrypt time:  0.8662924729287624
+    - decrypt time:  0.17552421591244638
+    - prover time:   6.9695916483178735
+    - verifier time: 0.08585331169888377
+    - hash time:     0.2787475660443306
+    - cipher time:   0.35968850390054286
+    - plain time:    0.003909610910341144
+
+
+
+test 14, [40, 40, 40], 30, 4
+    - encrypt time:  1.195257032988593
+    - decrypt time:  0.2338855341076851
+    - prover time:   10.137984657660127
+    - verifier time: 0.12162158149294555
+    - hash time:     0.35766833485104144
+    - cipher time:   0.5230182521045208
+    - plain time:    0.0036676039453595877
+
+

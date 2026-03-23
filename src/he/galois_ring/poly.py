@@ -94,6 +94,16 @@ class Poly:
         while len(self._data) > 0 and self._data[-1] == 0:
             self._data.pop()
         return self
+
+    def _eval_centered_mod(self):
+        ntt_flag = False
+        if self.is_ntt_form():
+            ntt_flag = True
+            self.transform_from_ntt_form()
+        for i in range(len(self._data)):
+            self._data[i] = _modulus._centered_modulus(self._data[i], self._poly_modulus)
+        if ntt_flag:
+            self.transform_to_ntt_form()
     
     def _set_ntt_engine(self, ntt_engine : _NTT_Engine):
         self._ntt_engine = ntt_engine

@@ -32,7 +32,7 @@ class Ciphertext:
         for idx in range(diff):
             ret._data.append(long._data[idx])
         for idx in range(diff, long.size()):
-            ret._data.append(long._data[idx] + other._data[idx - diff])
+            ret._data.append(long._data[idx] + short._data[idx - diff])
         return ret
     
     def __sub__(self, other : Self):

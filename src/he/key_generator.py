@@ -50,11 +50,16 @@ class Key_Generator:
             c0._set_poly(temp_poly.copy())
         c1 = c0.copy()
         c1.mul_inplace(secret_key)
-        loc_error = [ self.param.plain_modulus * \
-            _random._random_bound_int(self.param._first_error_bound)\
-            for _ in range(self.param.poly_modulus) ]
-        loc_error_plain = Poly(self.param.plain_modulus, self.param.poly_modulus, loc_error)
-        loc_error_plain._set_ntt_engine(self.param.ntt_engines[self.param.plain_modulus])
-        c1.add_poly_inplace(loc_error_plain)
+        # loc_error = [ self.param.plain_modulus * \
+        #     _random._random_bound_int(self.param._first_error_bound)\
+        #     for _ in range(self.param.poly_modulus) ]
+
+        # loc_error = [ self.param.plain_modulus * \
+        #     round(_random.random.gauss(0, 3.2)) \
+        #     for _ in range(self.param.poly_modulus) ]
+        # loc_error_plain = Poly(self.param.plain_modulus, self.param.poly_modulus, loc_error)
+        # loc_error_plain._set_ntt_engine(self.param.ntt_engines[self.param.plain_modulus])
+        # c1.add_poly_inplace(loc_error_plain)
+
         ret = Ciphertext(self.param, [c0, c1.neg_inplace()], self.param._first_error_bound, True)
         return ret

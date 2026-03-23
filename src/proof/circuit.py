@@ -39,7 +39,7 @@ class Gate:
     # poly, rns_poly, ciphertext...
     def compute_poly(self, data : list):
         if len(data) < self.right:
-            raise Exception("data list is to small")
+            raise Exception("data list is small")
         if self.op == OpType.ADD:
             return data[self.left] + data[self.right]
         elif self.op == OpType.MULT:
@@ -47,7 +47,7 @@ class Gate:
     
     def compute_poly_const(self, data : list):
         if len(data) < self.right:
-            raise Exception("data list is to small")
+            raise Exception("data list is small")
         if type(data[self.left]) == type(data[self.right]):
             if isinstance(data[self.left], Field):
                 return self.compute_field(data)
@@ -65,7 +65,7 @@ class Gate:
         
     def compute_int(self, mod : int, data : list[int]) -> int:
         if len(data) < self.right:
-            raise Exception("data list is to small")
+            raise Exception("data list is small")
         if self.op == OpType.ADD:
             return _modulus._centered_modulus(data[self.left] + data[self.right], mod)
         elif self.op == OpType.MULT:
@@ -73,7 +73,7 @@ class Gate:
     
     def compute_field(self, data : list[Field]) -> Field:
         if len(data) < self.right:
-            raise Exception("data list is to small")
+            raise Exception("data list is small")
         if self.op == OpType.ADD:
             return data[self.left] + data[self.right]
         elif self.op == OpType.MULT:
@@ -81,7 +81,7 @@ class Gate:
         
     def compute_list(self, data : list[list[Field]]) -> list[Field]:
         if len(data) < self.right:
-            raise Exception("data list is to small")
+            raise Exception("data list is small")
         ret = []
         if self.op == OpType.ADD:
             for i in range(len(data[0])):
@@ -158,13 +158,19 @@ class Circuit:
     # input : list of polynomial (plain, cipher...)
     # output : list of layer's output (output[layer][gates]), each elemenent is poly
     def compute_poly(self, data : list):
+        # self._modify_label_m1(data)
+        # data_copy = copy.deepcopy(data)
+        # ret = [copy.deepcopy(data)]
+        # for layer in self.layers:
+        #     data_copy = layer.compute_poly(data_copy)
+        #     ret.append(copy.deepcopy(data_copy))
+        # return ret
+
         self._modify_label_m1(data)
         data_copy = copy.deepcopy(data)
-        ret = [ copy.deepcopy(data_copy) ]
         for layer in self.layers:
             data_copy = layer.compute_poly(data_copy)
-            ret.append(copy.deepcopy(data_copy))
-        return ret[-1]
+        return data_copy
     
     # data : list of poly and field
     def compute_poly_const(self, data : list):

@@ -17,6 +17,7 @@ class Encryptor:
     def encrypt(self, poly : Poly) -> Ciphertext:
         if poly.is_ntt_form():
             raise Exception("plaintext must be basic form")
+        poly.centered_mod()
         encrypted = self.public_key.copy()
         encrypted.add_plain_inplace(poly)
         return encrypted

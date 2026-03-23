@@ -391,6 +391,9 @@ class Demo:
         if self.debug == True:
             print(*objects, sep, end)
     
+    def gen_data(self):
+        return random.randint(2, 15)
+    
     # return claimed_output
     # if timecheck is true, (claimed_output, prover time, verifier time)
     def giraffe_basic(self, circuit : Circuit, input : list[list[Field]], fielder : Fielder, debug=False):
@@ -485,7 +488,7 @@ class Demo:
         self.log(f"result hashing time: {end - start}")
         is_same = True
         for _bais in param.coeff_modulus:
-            hashed_result_field = fielder_dict[_bais].to_field_list(hashed_result._rns_poly[_bais]._data)
+            hashed_result_field = fielder_dict[_bais].to_field_list(hashed_result[0]._rns_poly[_bais]._data)
             same = all(hashed_result_field[i] == output_dict[_bais][i] for i in range(len(output_dict[_bais])))
             if not same: 
                 is_same = False
@@ -502,14 +505,18 @@ class Demo:
         hasher = HomHash_Manager(param)
         fielder_dict = {key: Fielder(key) for key in param.coeff_modulus}
         input_dict = {key: [] for key in param.coeff_modulus}
-        start = time.perf_counter()
+        # start = time.perf_counter()
+        hash_time = 0
         for _cipher in cipher_input:
+            start = time.perf_counter()
             hashed_cipher = hasher.cipher_hash(_cipher)
+            end = time.perf_counter()
+            hash_time += end - start
             for _bais in param.coeff_modulus:
                 input_dict[_bais].append(fielder_dict[_bais].to_field_list(hashed_cipher._rns_poly[_bais]._data))
-        end = time.perf_counter()
+        # end = time.perf_counter()
+        # hash_time = end - start
         self.log(f"input hashing time: {end - start}")
-        hash_time = end - start
 
         # const input
         subAC_length = param.poly_modulus
@@ -566,6 +573,7 @@ class Demo:
         start = time.perf_counter()
         plain_list = [encoder.slot_encode(m) for m in matrix]
         cipher_list = [encryptor.encrypt(plain.transform_from_ntt_form()) for plain in plain_list]
+        enc_vec = [encryptor.encrypt(encoder.coeff_encode([v])) for v in vec]
         end = time.perf_counter()
         encrypt_time = end - start
 
@@ -575,7 +583,7 @@ class Demo:
         # print(c.toString())
 
         prover_time, verifier_time, encrypted_result, cipher_eval_time, hash_time \
-            = self.giraffe_cipher_const(c, cipher_list, vec, param, debug)
+            = self.giraffe_cipher(c, cipher_list + enc_vec, param, debug)
 
         start = time.perf_counter()
         decrypt_result = decryptor.decrypt(encrypted_result[0]).transform_to_ntt_form()
@@ -601,6 +609,10 @@ class Demo:
         self.log(circuit.toString())
         # print(circuit.toString())
 
+        coeff_n = 2 ** math.ceil(math.log2(len(coeff) + 2)) - 2
+        while len(coeff) < coeff_n:
+            coeff.append(0)
+
         # len(input_cipher) must be power of 2
         start = time.perf_counter()
         input_cipher = [
@@ -621,113 +633,182 @@ class Demo:
 
         return encrypt_time, decrypt_time, prover_time, verifier_time, cipher_eval_time, hash_time, decrypt_result
 
+
+    # max depth: 
+    #   - cipher mult: ceil(log degree)
+    #   - plain mult: 1
+    #   - add: ceil(log degree)
+    #
+    # minimum q(bit) - degree 2^d, max coeff 2^c, plain modulus 2^p
+    # dp + c + 1
+    # 2^6 degree, max coeff 2^4, plain modulus 2^17 : 107bit [60, 60]
+    # 2^7 degree, ... : 124bit
+    # 2^8 degree, ... : 141bit
     def poly_func_test(self):
         print("####################################################")
         print("#     Homomorphic Giraffe Test - Poly Function     #")
         print("####################################################\n")
 
-        # poly modulus, [coeff modulus, plain modulus, secret key bound, error bound]
-        parameter = {
-            12: ([50, 50], 18, 1, 2),
-            13: ([50, 50], 18, 1, 2),
-            14: ([50, 50], 18, 1, 2),
-            15: ([50, 50], 20, 1, 2),
-            16: ([50, 50], 20, 1, 2),
-        }
-        # parameter = {
-        #     13: ([30, 30, 40], 18, 1, 2)
-        # }
-        for poly_modulus in parameter:
-            coeff_modulus, plain_modulus, sbound, ebound = parameter[poly_modulus]
+        # poly_modulus, [coeff_modulus], plain_modulus, poly_func_degree
+        # 4 bit data
+        test_parameter = [
+            # test 1-1
+            (14, [40], 17, 1),
+            (14, [60], 17, 2),
+            (14, [30, 40], 17, 3),
+            (14, [50, 60], 21, 4),
+            (14, [50, 50, 60], 25, 5),
+            (14, [50, 50, 50, 60], 29, 6),
+
+            # test 1-2
+            (15, [40], 17, 1),
+            (15, [60], 17, 2),
+            (15, [30, 40], 17, 3),
+            (15, [50, 60], 21, 4),
+            (15, [50, 50, 60], 25, 5),
+            (15, [50, 50, 60, 60], 29, 6),
+            (15, [50, 50, 60, 60, 60], 33, 7),
+            (15, [50, 60, 60, 60, 60, 60], 37, 8),
+
+            # test 2-1
+            (14, [50, 50, 50, 60], 29, 1),
+            (14, [50, 50, 50, 60], 29, 2),
+            (14, [50, 50, 50, 60], 29, 3),
+            (14, [50, 50, 50, 60], 29, 4),
+            (14, [50, 50, 50, 60], 29, 5),
+            (14, [50, 50, 50, 60], 29, 6),
+
+            # test 2-2
+            (15, [50, 50, 50, 60], 29, 1),
+            (15, [50, 50, 50, 60], 29, 2),
+            (15, [50, 50, 50, 60], 29, 3),
+            (15, [50, 50, 50, 60], 29, 4),
+            (15, [50, 50, 50, 60], 29, 5),
+            (15, [50, 50, 50, 60], 29, 6),
+
+            # test 3
+            (14, [30, 40], 17, 3),
+            (14, [50, 60], 17, 3),
+            (14, [50, 50, 60], 17, 3),
+            (14, [50, 50, 50, 60], 17, 3),
+            (15, [30, 40], 17, 3),
+            (15, [50, 60], 17, 3),
+            (15, [50, 50, 60], 17, 3),
+            (15, [50, 50, 50, 60], 17, 3),
+        ]
+
+        for poly_mod_bit, coeff_mod_bit, plain_mod_bit, func_degree in test_parameter:
             param = HE_Parameter("bv") \
-                    .set_poly_modulus(poly_modulus) \
-                    .set_coeff_modulus(coeff_modulus) \
-                    .set_plain_modulus(plain_modulus) \
-                    .set_bound(sbound, ebound)
+                    .set_poly_modulus(poly_mod_bit) \
+                    .set_coeff_modulus(coeff_mod_bit) \
+                    .set_plain_modulus(plain_mod_bit) \
+                    .set_bound(1, 0)
             param.generate_context()
-            print(f"\n\n** poly_modulus {poly_modulus} **")
-        
-            for _d in range(2, 7):
-                degree = 2 ** _d - 2
-                print(f"degree {degree - 1} poly function")
-                coeff = [random.randint(0, 10) for _ in range(degree)]
-                print(f"  - coeff: {coeff[:min(10, degree)]}{"..." if degree > 10 else ""}")
-                data = [random.randint(0, 10) for _ in range(2 ** poly_modulus)]
-                print(f"  - data:  {data[:10]}...")
 
-                # plain eval
-                start = time.perf_counter()
-                result = [_horner(coeff, d) for d in data]
-                end = time.perf_counter()
-                plain_eval_time = end - start
+            # generate data (data, coeff)
+            coeff = [self.gen_data() for _ in range(func_degree + 1)]
+            data = [self.gen_data() for _ in range(param.poly_modulus)]
 
-                encrypt_time, decrypt_time, prover_time, verifier_time, cipher_eval_time, hash_time, decrypt_result\
-                    = self.poly_func(copy.deepcopy(data), copy.deepcopy(coeff), param, False)
+            # plain eval
+            start = time.perf_counter()
+            result = [_horner(coeff[::-1], d) for d in data]
+            end = time.perf_counter()
+            plain_eval_time = end - start
 
-                print(f"    - result:")
-                print(f"    - encrypt time:  {encrypt_time}")
-                print(f"    - decrypt time:  {decrypt_time}")
-                print(f"    - prover time:   {prover_time}")
-                print(f"    - verifier time: {verifier_time}")
-                print(f"    - hash time:     {hash_time}")
-                print(f"    - cipher time:   {cipher_eval_time}")
-                print(f"    - plain time:    {plain_eval_time}")
-                print("\n")
+            encrypt_time, decrypt_time, prover_time, verifier_time, cipher_eval_time, hash_time, decrypt_result\
+                = self.poly_func(copy.deepcopy(data), copy.deepcopy(coeff), param, False)
+            
+            print(f"\ntest {poly_mod_bit}, {coeff_mod_bit}, {plain_mod_bit}, {func_degree}")
+            print(f"    - encrypt time:  {encrypt_time}")
+            print(f"    - decrypt time:  {decrypt_time}")
+            print(f"    - prover time:   {prover_time}")
+            print(f"    - verifier time: {verifier_time}")
+            print(f"    - hash time:     {hash_time}")
+            print(f"    - cipher time:   {cipher_eval_time}")
+            print(f"    - plain time:    {plain_eval_time}")
 
+            same = all(result[i] == decrypt_result._data[i] for i in range(param.poly_modulus))
+            if not same:
+                print("plain - cipher false")
+            print("\n")
+
+    # 2p + log(k)
     def vec_mat_mult_test(self):
         print("####################################################")
         print("#    Homomorphic Giraffe Test - Vector x Matrix    #")
         print("####################################################\n")
 
-        # poly modulus, [coeff modulus, plain modulus, secret key bound, error bound]
-        parameter = {
-            12: ([50, 50], 18, 1, 2),
-            13: ([50, 50], 18, 1, 2),
-            14: ([50, 50], 18, 1, 2),
-            15: ([50, 50], 20, 1, 2),
-            16: ([50, 50], 20, 1, 2),
-        }
-        for poly_modulus in parameter:
-            coeff_modulus, plain_modulus, sbound, ebound = parameter[poly_modulus]
-            param = HE_Parameter("bv") \
-                    .set_poly_modulus(poly_modulus) \
-                    .set_coeff_modulus(coeff_modulus) \
-                    .set_plain_modulus(plain_modulus) \
-                    .set_bound(sbound, ebound)
-            param.generate_context()
-            print(f"\n\n** poly_modulus {poly_modulus} **")
+        # poly_modulus, [coeff_modulus], plain_modulus, vector_length
+        # 4 bit data
+        test_parameter = [
+            # test 1-1
+            (13, [60], 22, 2),
+            (13, [30, 40], 23, 4),
+            (13, [30, 40], 24, 8),
+            (13, [30, 40], 25, 16),
+            (13, [40, 40], 26, 32),
+            (13, [40, 40], 27, 64),
+            (13, [40, 40], 28, 128),
 
-            for _k in range(3, 10):
-                k = 2 ** _k
-                print(f"{k} x ({k} x 2^{poly_modulus})")
-                vec = [random.randint(0, 10) for _ in range(k)]
-                mat = [[random.randint(0, 10) for _ in range(2 ** poly_modulus)] for _ in range(k)]
-                print(f"vec: {vec[:10]}...")
-                print(f"mat:")
-                for m in mat[:10]:
-                    print(f"{m[:10]}...")
-                print("...")
-                
-                encrypt_time, decrypt_time, prover_time, verifier_time, cipher_eval_time, hash_time, decrypt_result\
-                    = self.vec_mat_mult(vec, mat, param, False)
-                
-                # plain eval
-                start = time.perf_counter()
-                result = []
-                for j in range(k):
-                    column_sum = 0
-                    for i in range(k):
-                        column_sum += vec[i] * mat[i][j]
-                        result.append(column_sum)
-                end = time.perf_counter()
-                plain_eval_time = end - start
-                
-                print(f"    - result:")
-                print(f"    - encrypt time:  {encrypt_time}")
-                print(f"    - decrypt time:  {decrypt_time}")
-                print(f"    - prover time:   {prover_time}")
-                print(f"    - verifier time: {verifier_time}")
-                print(f"    - hash time:     {hash_time}")
-                print(f"    - cipher time:   {cipher_eval_time}")
-                print(f"    - plain time:    {plain_eval_time}")
-                print("\n")
+            # test 2-1
+            (15, [40, 50], 30, 2),
+            (15, [40, 50], 30, 4),
+            (15, [40, 50], 30, 8),
+            (15, [40, 50], 30, 16),
+            (15, [40, 50], 30, 32),
+            (15, [40, 50], 30, 64),
+            (15, [40, 50], 30, 128),
+
+            # test 3-1
+            (14, [40, 40], 26, 4),
+            (14, [40, 50], 28, 4),
+            (14, [40, 40, 40], 30, 4),
+        ]
+
+        for poly_mod_bit, coeff_mod_bit, plain_mod_bit, vector_length in test_parameter:
+            param = HE_Parameter("bv") \
+                    .set_poly_modulus(poly_mod_bit) \
+                    .set_coeff_modulus(coeff_mod_bit) \
+                    .set_plain_modulus(plain_mod_bit) \
+                    .set_bound(1, 0)
+            param.generate_context()
+
+            vec = [self.gen_data() for _ in range(vector_length)]
+            mat = [[self.gen_data() for _ in range(param.poly_modulus)] for _ in range(vector_length)]
+            vec_copy = copy.deepcopy(vec)
+            mat_copy = copy.deepcopy(mat)
+
+            # plain_eval
+            start = time.perf_counter()
+            result = []
+            for j in range(param.poly_modulus):
+                column_sum = 0
+                for i in range(vector_length):
+                    column_sum += vec[i] * mat[i][j]
+                result.append(column_sum)
+            end = time.perf_counter()
+            plain_eval_time = end - start
+
+            encrypt_time, decrypt_time, prover_time, verifier_time, cipher_eval_time, hash_time, decrypt_result\
+                = self.vec_mat_mult(vec, mat, param, False)
+
+            print(f"\ntest {poly_mod_bit}, {coeff_mod_bit}, {plain_mod_bit}, {vector_length}")
+            print(f"    - encrypt time:  {encrypt_time}")
+            print(f"    - decrypt time:  {decrypt_time}")
+            print(f"    - prover time:   {prover_time}")
+            print(f"    - verifier time: {verifier_time}")
+            print(f"    - hash time:     {hash_time}")
+            print(f"    - cipher time:   {cipher_eval_time}")
+            print(f"    - plain time:    {plain_eval_time}")
+
+            same = all(result[i] == decrypt_result._data[i] for i in range(param.poly_modulus))
+            if not same:
+                print("plain - cipher false")
+                # print(vec_copy[:10])
+                # print("---")
+                # for e in mat_copy:
+                #     print(e[:10])
+                # print("---")
+                # print(result[:10])
+                # print(decrypt_result._data[:10])
+            print("\n")
