@@ -1,1 +1,1 @@
-# CPET Galois Ring Package for Python
+BV HE + Giraffe VC
